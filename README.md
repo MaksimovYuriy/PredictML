@@ -51,7 +51,7 @@ python -m predictml train-predict price --data artifacts/data --output artifacts
 python -m predictml predict materials --data artifacts/data --output artifacts/prediction --model artifacts/material-v1/material_model.pth --months 2
 ```
 
-Для быстрой проверки обучения добавьте `--epochs 50`; это не настройка для достижения заданного качества. По умолчанию сохранены 1500/1000 эпох. Каждый запуск использует отдельный каталог результатов. Старые версии автоматически не создаются, повторное использование каталога перезаписывает файлы.
+Для быстрой проверки обучения добавьте `--epochs 50`; это не настройка для достижения заданного качества. По умолчанию сохранены 1500/1000 эпох. Каждый запуск получает отдельный каталог в runs. Повторное использование --output сохраняет предыдущие версии; плоские файлы обновляются как копии последнего результата.
 
 as-of=2027-01-01 включает данные по декабрь 2026. as-of=2026-12-31 включает только данные по ноябрь: месяц самой границы всегда считается неполным и исключается.
 
@@ -99,6 +99,24 @@ python -m predictml predict price --data artifacts/data --output artifacts/linea
 
 Откройте comparison.html в выходном каталоге: таблица метрик, график, параметры и границы выборок. comparison.json сохраняет исходные данные отчёта; comparison.csv — метрики. Выбор recommended_model основан на validation MSE, а не на test. Неприменимые wMAPE/R² отображаются как неопределённые.
 
+## Версии и история SQLite
+
+Высокоуровневые команды обучения автоматически создают history.sqlite3 и неизменяемые комплекты в runs/<run-id>/versions/<version-id>. Повторное обучение в тот же --output добавляет версии. Старые плоские файлы остаются копиями последнего результата, архивом являются каталоги runs.
+
+```bash
+python -m predictml versions --store artifacts/housing
+python -m predictml runs --store artifacts/housing
+python -m predictml show-version --store artifacts/housing --id VERSION_ID
+python -m predictml predict-version --store artifacts/housing --id VERSION_ID --data examples/tabular/housing_new.csv --output artifacts/housing-prediction --format both
+python -m predictml export-metrics --store artifacts/housing --id VERSION_ID --output artifacts/housing-metrics.xlsx
+```
+
+VERSION_ID замените на ID из versions. Для спроса/цены выберите их хранилище, а --data указывает каталог подготовленных данных; для спроса достаточно также двух JSON-справочников, если применяется сохранённая история. --months задаёт горизонт спроса. Новый прогноз имеет свой run ID и ссылку на выбранную версию, обучение не выполняется.
+
+Комплект содержит параметры, схему, цель, метрики, окружение и SHA-256. Перед загрузкой проверяются целостность и совместимость. Для сериализуемых библиотек требуется точное совпадение версий, для Python — major/minor. Не редактируйте архивные файлы вручную. Загружать следует только доверенные pickle/joblib-комплекты.
+
+При жёстком прерывании, после проверки остановки процесса, можно пометить конкретный running-запуск прерванным: `python -m predictml recover-run --store artifacts/housing --id RUN_ID`. Завершённые версии эта команда не изменяет. Подробности: [контракт хранилища](docs/storage-contract.md).
+
 ## Совместимость с ServiceFlow
 
 Для старых экспортов и ratio-весов явно выбирайте legacy-parity:
@@ -124,6 +142,6 @@ python -m pytest -q
 
 Тесты можно запускать и через `python -m unittest discover -s tests -v`. Для проверки исходных Ruby-вычислений нужен Ruby; при его отсутствии эта проверка явно пропускается. Rails/PostgreSQL для тестов не нужны.
 
-Отчёты: [итерация 1](docs/iteration-1.md), [итерация 2](docs/iteration-2.md), [итерация 3](docs/iteration-3.md), [итерация 4](docs/iteration-4.md), [итерация 5](docs/iteration-5.md). ServiceFlow_back не изменяется, реальные данные и исходные checkpoint не включены.
+Отчёты: [итерация 1](docs/iteration-1.md), [итерация 2](docs/iteration-2.md), [итерация 3](docs/iteration-3.md), [итерация 4](docs/iteration-4.md), [итерация 5](docs/iteration-5.md), [итерация 6](docs/iteration-6.md). ServiceFlow_back не изменяется, реальные данные и исходные checkpoint не включены.
 
-Следующие этапы: полноценные версии/SQLite, дообучение, Streamlit. Полное ТЗ ещё не завершено.
+Следующие этапы: переобучение/дообучение и сравнение обновлённых версий, Streamlit. Полное ТЗ ещё не завершено.

@@ -87,6 +87,12 @@ class TabularModel:
 
     @classmethod
     def load(cls, path):
+        if Path(path).is_dir():
+            from ..storage.bundles import load_payload
+            _, model = load_payload(path)
+            if not isinstance(model, cls):
+                raise ValueError('expected tabular model bundle')
+            return model
         model = joblib.load(path)
         if not isinstance(model, cls) or model.format_version != 1:
             raise ValueError('model: unsupported tabular bundle')
@@ -156,8 +162,10 @@ def train_table(frame, config, settings=None, hidden_sizes=(32, 16), model_kind=
     return model, table
 
 
-def train_file(path, output_dir, config, *, sheet=None, settings=None, hidden_sizes=(32, 16), model_kind="mlp"):
+def _train_file(path, output_dir, config, *, sheet=None, settings=None, hidden_sizes=(32, 16), model_kind="mlp", run_id=None):
     model, predictions = train_table(read_table(path, sheet), config, settings, hidden_sizes, model_kind)
+    if run_id is not None:
+        model.report['run_id'] = run_id
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=True)
     model.save(output/'model.joblib')
@@ -176,7 +184,7 @@ def train_file(path, output_dir, config, *, sheet=None, settings=None, hidden_si
     return model
 
 
-def predict_file(path, model_path, output_path, *, sheet=None):
+def _predict_file(path, model_path, output_path, *, sheet=None):
     frame = read_table(path, sheet)
     model = TabularModel.load(model_path)
     output = pd.DataFrame(dict(source_row=np.arange(len(frame)), prediction=model.predict(frame)))
@@ -189,3 +197,26 @@ def predict_file(path, model_path, output_path, *, sheet=None):
     else:
         raise ValueError('prediction output must be CSV or XLSX')
     return output
+
+
+def train_file(path, output_dir, config, *, sheet=None, settings=None, hidden_sizes=(32, 16), model_kind='mlp'):
+    from ..storage import execute_run
+    from ..storage.specs import tabular_specs
+    model, run_id, versions = execute_run(
+        output_dir, 'train-tabular', dict(file=str(path), sheet=sheet, config=config,
+                                        settings=asdict(settings) if settings else None, hidden_sizes=hidden_sizes, model_kind=model_kind),
+        lambda stage, rid: _train_file(path, stage, config, sheet=sheet, settings=settings,
+                                      hidden_sizes=hidden_sizes, model_kind=model_kind, run_id=rid), tabular_specs)
+    model.storage = dict(run_id=run_id, version_ids=versions, store=str(Path(output_dir).resolve()))
+    return model
+
+
+def predict_file(path, model_path, output_path, *, sheet=None):
+    from ..storage import execute_run
+    destination = Path(output_path)
+    if destination.suffix.lower() not in ('.csv', '.xlsx'):
+        raise ValueError('prediction output must be CSV or XLSX')
+    result, _, _ = execute_run(destination.parent, 'predict-tabular',
+                              dict(file=str(path), model=str(model_path), output=destination.name, sheet=sheet),
+                              lambda stage, rid: _predict_file(path, model_path, stage/destination.name, sheet=sheet))
+    return result

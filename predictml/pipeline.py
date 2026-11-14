@@ -3,7 +3,7 @@ from pathlib import Path
 import json
 
 
-def run(scenario, data_dir, output_dir, *, train=True, model=None,
+def _run(scenario, data_dir, output_dir, *, train=True, model=None,
         months=3, epochs=None, mode="demand-v2"):
     if scenario not in ('materials', 'price'):
         raise ValueError('scenario must be materials or price')
@@ -58,4 +58,28 @@ def run(scenario, data_dir, output_dir, *, train=True, model=None,
         result = price.predict(frame, predictor)
     destination = output/f'{prefix}_predictions.json'
     destination.write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding='utf-8')
+    return result
+
+
+def run(scenario, data_dir, output_dir, *, train=True, model=None, months=3, epochs=None, mode='demand-v2'):
+    from dataclasses import asdict
+    from .config import CONFIGS, TrainingConfig
+    from .storage import execute_run
+    from .storage.specs import checkpoint_spec
+    if scenario not in ('materials', 'price'):
+        raise ValueError('scenario must be materials or price')
+    if type(months) is not int or months not in (1, 2, 3):
+        raise ValueError('months must be 1, 2 or 3')
+    if mode not in ('demand-v2', 'legacy-parity'):
+        raise ValueError('invalid mode')
+    prefix = 'material' if scenario == 'materials' else 'price'
+    selected_model = model if model is not None or train else Path(output_dir)/f'{prefix}_model.pth'
+    def specs(stage, result):
+        settings = TrainingConfig(epochs=CONFIGS[scenario].epochs if epochs is None else epochs)
+        return [checkpoint_spec(stage/f'{prefix}_model.pth', scenario, asdict(settings), mode=mode)]
+    result, _, _ = execute_run(output_dir, ('train-' if train else 'predict-')+scenario,
+                              dict(data=str(data_dir), model=str(selected_model) if selected_model else None,
+                                   months=months, epochs=epochs, mode=mode),
+                              lambda stage, rid: _run(scenario, data_dir, stage, train=train, model=selected_model,
+                                                      months=months, epochs=epochs, mode=mode), specs if train else None)
     return result

@@ -1,4 +1,5 @@
 import argparse
+import sqlite3
 from .pipeline import run
 
 
@@ -64,9 +65,44 @@ def main():
     p.add_argument('--epochs', type=int, default=200)
     add_training_options(p)
     p.set_defaults(seed=42)
+    for command in ('versions', 'runs'):
+        p = sub.add_parser(command)
+        p.add_argument('--store', required=True)
+    for command in ('show-version', 'export-metrics', 'predict-version', 'recover-run'):
+        p = sub.add_parser(command)
+        p.add_argument('--store', required=True)
+        p.add_argument('--id', required=True, help='version ID, or run ID for recover-run')
+        if command == 'export-metrics':
+            p.add_argument('--output', required=True)
+        if command == 'predict-version':
+            p.add_argument('--data', required=True)
+            p.add_argument('--output')
+            p.add_argument('--sheet')
+            p.add_argument('--months', type=int, choices=[1, 2, 3], default=3)
+            p.add_argument('--format', choices=['csv', 'xlsx', 'both'], default='both')
     args = parser.parse_args()
     try:
-        if args.command == 'compare':
+        if args.command in ('versions', 'runs', 'show-version', 'export-metrics', 'predict-version', 'recover-run'):
+            import json
+            from .storage import Store
+            from .storage.operations import export_metrics, predict_version
+            store = Store(args.store)
+            if args.command == 'versions':
+                result = store.versions()
+            elif args.command == 'runs':
+                result = store.runs()
+            elif args.command == 'show-version':
+                result = store.version(args.id)[2]
+            elif args.command == 'export-metrics':
+                result = str(export_metrics(args.store, args.id, args.output))
+            elif args.command == 'recover-run':
+                store.recover(args.id)
+                result = {'run_id': args.id, 'status': 'failed'}
+            else:
+                result = predict_version(args.store, args.id, args.data, args.output, months=args.months,
+                                         sheet=args.sheet, export_format=args.format)
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+        elif args.command == 'compare':
             from .comparison import compare_service
             report = compare_service(args.scenario, args.data, args.output, settings=training_settings(args),
                                      hidden_sizes=args.hidden_sizes, months=args.months)
@@ -104,5 +140,5 @@ def main():
                 train=args.command == 'train-predict',
                 model=getattr(args, 'model', None), months=args.months,
                 epochs=getattr(args, 'epochs', None), mode=args.mode)
-    except (ValueError, FileNotFoundError) as exc:
+    except (ValueError, OSError, sqlite3.Error) as exc:
         parser.error(str(exc))

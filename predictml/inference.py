@@ -33,7 +33,13 @@ class Predictor:
 
     @classmethod
     def load(cls, path):
-        # Original trusted checkpoint format; portable CPU loading.
+        if Path(path).is_dir():
+            from .storage.bundles import load_payload
+            _, state = load_payload(path)
+            if not isinstance(state, dict):
+                raise ValueError('expected checkpoint bundle')
+            return cls(state)
+        # Legacy standalone files remain supported; no manifest integrity check.
         return cls(torch.load(Path(path), map_location='cpu', weights_only=False))
 
     def predict(self, values):

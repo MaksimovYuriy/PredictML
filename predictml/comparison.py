@@ -12,7 +12,7 @@ from .metrics import regression_metrics
 from .reporting import export_comparison
 
 
-def compare_service(scenario, data_dir, output_dir, *, settings=None, hidden_sizes=None, months=3):
+def _compare_service(scenario, data_dir, output_dir, *, settings=None, hidden_sizes=None, months=3, run_id=None):
     settings = settings or TrainingConfig(epochs=200, validation_interval=1, patience=20, seed=42)
     if scenario not in ('materials', 'price'):
         raise ValueError('scenario must be materials or price')
@@ -24,7 +24,7 @@ def compare_service(scenario, data_dir, output_dir, *, settings=None, hidden_siz
         report, rows = compare_demand(data, output, settings, hidden_sizes, months)
     else:
         report, rows = compare_price(data, output, settings, hidden_sizes)
-    report.update(run_id=str(uuid.uuid4()), created_at=datetime.now(timezone.utc).isoformat(),
+    report.update(run_id=run_id or str(uuid.uuid4()), created_at=datetime.now(timezone.utc).isoformat(),
                   settings=asdict(settings), selection_policy='minimum validation MSE; test never used for selection')
     report['recommended_model'] = min(report['models'], key=lambda name: report['models'][name]['validation']['mse'])
     (output/'comparison.json').write_text(json.dumps(report, indent=2, ensure_ascii=False, allow_nan=False), encoding='utf-8')
@@ -121,3 +121,20 @@ def compare_price(data, output, settings, hidden_sizes):
                 evaluation='monthly-rule-reconstruction; clipping to 85–115%; no annual aggregation or unpopular-service discount',
                 formula_note='rule reconstructed from rounded export features; cent-level differences from source labels are possible',
                 models=models, split=split), rows
+
+
+def compare_service(scenario, data_dir, output_dir, *, settings=None, hidden_sizes=None, months=3):
+    from .storage import execute_run
+    from .storage.specs import checkpoint_spec
+    if scenario not in ('materials', 'price') or type(months) is not int or months not in (1, 2, 3):
+        raise ValueError('invalid scenario or months')
+    prefix = 'material' if scenario == 'materials' else 'price'
+    def specs(stage, report):
+        return [checkpoint_spec(stage/f'{prefix}-{kind}.pth', scenario, report['settings']) for kind in ('mlp', 'linear')]
+    report, _, versions = execute_run(
+        output_dir, f'compare-{scenario}', dict(data=str(data_dir), settings=asdict(settings) if settings else None,
+                                               hidden_sizes=hidden_sizes, months=months),
+        lambda stage, rid: _compare_service(scenario, data_dir, stage, settings=settings,
+                                           hidden_sizes=hidden_sizes, months=months, run_id=rid), specs)
+    report['version_ids'] = versions
+    return report
