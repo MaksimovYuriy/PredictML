@@ -85,11 +85,13 @@ def fit(df, scenario, model_config, training_config, *, validation_evaluator=Non
 
 
 def fit_arrays(x_train, y_train, x_val, y_val, x_test, hidden_sizes, training_config,
-               *, validation_evaluator=None, mean=None, std=None, features=None, training_log=None):
+               *, validation_evaluator=None, mean=None, std=None, features=None, training_log=None, initial_state=None):
     """Shared MLP optimization for already prepared float32 arrays."""
     loader = DataLoader(TensorDataset(torch.tensor(x_train), torch.tensor(y_train)),
                         batch_size=training_config.batch_size, shuffle=True)
     model = MLP(x_train.shape[1], hidden_sizes, training_config.dropout)
+    if initial_state is not None:
+        model.load_state_dict(initial_state)
     optimizer = torch.optim.Adam(model.parameters(), lr=training_config.learning_rate)
     criterion = nn.MSELoss()
     best_loss, best_state = float('inf'), None

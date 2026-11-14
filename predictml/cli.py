@@ -80,9 +80,39 @@ def main():
             p.add_argument('--sheet')
             p.add_argument('--months', type=int, choices=[1, 2, 3], default=3)
             p.add_argument('--format', choices=['csv', 'xlsx', 'both'], default='both')
+    for command in ('retrain', 'fine-tune'):
+        p = sub.add_parser(command)
+        p.add_argument('--store', required=True)
+        p.add_argument('--id', required=True, help='parent version ID')
+        p.add_argument('--data', required=True)
+        p.add_argument('--sheet')
+        p.add_argument('--config', help='optional new table configuration; retrain only')
+        p.add_argument('--epochs', type=int, default=100)
+        add_training_options(p)
+        p.set_defaults(seed=42)
+    p = sub.add_parser('compare-versions')
+    p.add_argument('--store', required=True)
+    p.add_argument('--ids', required=True, nargs='+')
+    p.add_argument('--control', required=True)
+    p.add_argument('--sheet')
+    p.add_argument('--history', help='optional common demand history CSV before control origin')
     args = parser.parse_args()
     try:
-        if args.command in ('versions', 'runs', 'show-version', 'export-metrics', 'predict-version', 'recover-run'):
+        if args.command in ('retrain', 'fine-tune'):
+            import json
+            from pathlib import Path
+            from .updates import update_version
+            config = json.loads(Path(args.config).read_text(encoding='utf-8')) if args.config else None
+            result = update_version(args.store, args.id, args.data, operation=args.command,
+                                    settings=training_settings(args), config=config,
+                                    hidden_sizes=args.hidden_sizes, sheet=args.sheet)
+            print(json.dumps(result, indent=2))
+        elif args.command == 'compare-versions':
+            import json
+            from .version_comparison import compare_versions
+            report = compare_versions(args.store, args.ids, args.control, sheet=args.sheet, history=args.history)
+            print(json.dumps({'run_id': report['run_id'], 'output_path': report['output_path'], 'models': report['models']}, indent=2))
+        elif args.command in ('versions', 'runs', 'show-version', 'export-metrics', 'predict-version', 'recover-run'):
             import json
             from .storage import Store
             from .storage.operations import export_metrics, predict_version

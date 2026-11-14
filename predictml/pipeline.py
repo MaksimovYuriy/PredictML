@@ -76,7 +76,9 @@ def run(scenario, data_dir, output_dir, *, train=True, model=None, months=3, epo
     selected_model = model if model is not None or train else Path(output_dir)/f'{prefix}_model.pth'
     def specs(stage, result):
         settings = TrainingConfig(epochs=CONFIGS[scenario].epochs if epochs is None else epochs)
-        return [checkpoint_spec(stage/f'{prefix}_model.pth', scenario, asdict(settings), mode=mode)]
+        from .provenance import checkpoint_provenance
+        return [checkpoint_spec(stage/f'{prefix}_model.pth', scenario, asdict(settings), mode=mode,
+                                provenance=checkpoint_provenance(data_dir, scenario, mode))]
     result, _, _ = execute_run(output_dir, ('train-' if train else 'predict-')+scenario,
                               dict(data=str(data_dir), model=str(selected_model) if selected_model else None,
                                    months=months, epochs=epochs, mode=mode),

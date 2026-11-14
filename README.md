@@ -117,6 +117,20 @@ VERSION_ID замените на ID из versions. Для спроса/цены 
 
 При жёстком прерывании, после проверки остановки процесса, можно пометить конкретный running-запуск прерванным: `python -m predictml recover-run --store artifacts/housing --id RUN_ID`. Завершённые версии эта команда не изменяет. Подробности: [контракт хранилища](docs/storage-contract.md).
 
+## Переобучение, дообучение и контроль
+
+```bash
+python -m predictml retrain --store artifacts/housing --id PARENT_ID --data examples/tabular/housing_update.csv --epochs 100 --seed 42
+python -m predictml fine-tune --store artifacts/housing --id PARENT_MLP_ID --data examples/tabular/housing_update.csv --epochs 100 --seed 42
+python -m predictml compare-versions --store artifacts/housing --ids ORIGINAL_ID UPDATED_ID --control examples/tabular/housing_control.csv
+```
+
+retrain начинает с нуля. fine-tune продолжает только MLP с прежними весами, архитектурой и предобработчиком; используется новый Adam. Каждая операция возвращает новый version_id и сохраняет родителя. Для спроса/цены --data указывает каталог подготовленных данных. Смена цели/признаков через retrain --config создаёт отдельную модель.
+
+Контроль должен быть заранее отделён и не пересекаться с данными любой сравниваемой версии, включая унаследованные веса. Состав новых обучений фиксируется в manifest. У старых версий без provenance независимость подтвердить нельзя: программа откажет в таком сравнении. Примеры housing_update/control синтетические и отделены от исходной housing.csv. Для спроса контроль содержит следующие 1–3 месяца и при необходимости задаётся --history с общей известной историей.
+
+Отчёт в store/runs/<run-id>: control_comparison.json, HTML-график, CSV и XLSX. Сравнение не обучает модели и не выбирает настройки по контролю. [Контракт обновлений](docs/updates-contract.md).
+
 ## Совместимость с ServiceFlow
 
 Для старых экспортов и ratio-весов явно выбирайте legacy-parity:
@@ -142,6 +156,6 @@ python -m pytest -q
 
 Тесты можно запускать и через `python -m unittest discover -s tests -v`. Для проверки исходных Ruby-вычислений нужен Ruby; при его отсутствии эта проверка явно пропускается. Rails/PostgreSQL для тестов не нужны.
 
-Отчёты: [итерация 1](docs/iteration-1.md), [итерация 2](docs/iteration-2.md), [итерация 3](docs/iteration-3.md), [итерация 4](docs/iteration-4.md), [итерация 5](docs/iteration-5.md), [итерация 6](docs/iteration-6.md). ServiceFlow_back не изменяется, реальные данные и исходные checkpoint не включены.
+Отчёты: [итерация 1](docs/iteration-1.md), [итерация 2](docs/iteration-2.md), [итерация 3](docs/iteration-3.md), [итерация 4](docs/iteration-4.md), [итерация 5](docs/iteration-5.md), [итерация 6](docs/iteration-6.md), [итерация 7](docs/iteration-7.md). ServiceFlow_back не изменяется, реальные данные и исходные checkpoint не включены.
 
-Следующие этапы: переобучение/дообучение и сравнение обновлённых версий, Streamlit. Полное ТЗ ещё не завершено.
+Следующие этапы: интерфейс Streamlit и итоговая приёмка в чистом окружении. Полное ТЗ ещё не завершено.

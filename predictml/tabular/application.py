@@ -158,6 +158,8 @@ def train_table(frame, config, settings=None, hidden_sizes=(32, 16), model_kind=
     for name, values in predictions_by_model.items():
         table[f'prediction_{name}'] = values
     model = TabularModel(schema, preprocessor, checkpoint, report)
+    from ..provenance import tabular_provenance
+    model.provenance = tabular_provenance(working, schema)
     model.checkpoints = states
     return model, table
 
@@ -171,6 +173,7 @@ def _train_file(path, output_dir, config, *, sheet=None, settings=None, hidden_s
     model.save(output/'model.joblib')
     for name, state in model.checkpoints.items():
         variant = TabularModel(model.schema, model.preprocessor, state, {**model.report, 'selected_model': name})
+        variant.provenance = model.provenance
         variant.save(output/f'model-{name}.joblib')
     for name, value in [('schema', model.schema), ('report', model.report)]:
         (output/f'{name}.json').write_text(json.dumps(value, indent=2, ensure_ascii=False, allow_nan=False), encoding='utf-8')

@@ -130,7 +130,9 @@ def compare_service(scenario, data_dir, output_dir, *, settings=None, hidden_siz
         raise ValueError('invalid scenario or months')
     prefix = 'material' if scenario == 'materials' else 'price'
     def specs(stage, report):
-        return [checkpoint_spec(stage/f'{prefix}-{kind}.pth', scenario, report['settings']) for kind in ('mlp', 'linear')]
+        from .provenance import checkpoint_provenance
+        provenance = checkpoint_provenance(data_dir, scenario)
+        return [checkpoint_spec(stage/f'{prefix}-{kind}.pth', scenario, report['settings'], provenance=provenance) for kind in ('mlp', 'linear')]
     report, _, versions = execute_run(
         output_dir, f'compare-{scenario}', dict(data=str(data_dir), settings=asdict(settings) if settings else None,
                                                hidden_sizes=hidden_sizes, months=months),
