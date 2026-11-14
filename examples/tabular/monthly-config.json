@@ -1,0 +1,15 @@
+{
+  "target": "prepared_next_month_demand",
+  "features": [
+    "known_capacity"
+  ],
+  "temporal": {
+    "time_column": "origin",
+    "frequency": "MS",
+    "horizon": 1,
+    "target_definition": "Synthetic demand for next month, already assigned to the forecast-origin row",
+    "available_features": [
+      "known_capacity"
+    ]
+  }
+}

@@ -59,9 +59,26 @@ def fit(df, scenario, model_config, training_config, *, validation_evaluator=Non
     mean, std = x_train.mean(axis=0), x_train.std(axis=0)
     std[std == 0] = 1
     x_train, x_val, x_test = [(x-mean)/std for x in (x_train, x_val, x_test)]
+    best_state, best_loss, predictions = fit_arrays(
+        x_train, y_train, x_val, y_val, x_test, model_config.hidden_sizes, training_config,
+        validation_evaluator=validation_evaluator, mean=mean, std=std, features=features)
+    if prediction_transform is not None:
+        predictions = prediction_transform(predictions)
+    mse, mae, wmape = compute_metrics(y_test, predictions)
+    metrics = dict(best_val_loss=best_loss, test_mse=mse, test_mae=mae, test_wmape=wmape,
+                   train_rows=len(train), val_rows=len(validation), test_rows=len(test))
+    metrics.update(baseline_metrics(test, y_test, scenario, mae, model_config.features))
+    return dict(model_state=best_state, input_size=x_train.shape[1],
+                hidden_sizes=list(model_config.hidden_sizes), dropout=training_config.dropout,
+                feature_mean=mean.tolist(), feature_std=std.tolist(), features=features, metrics=metrics)
+
+
+def fit_arrays(x_train, y_train, x_val, y_val, x_test, hidden_sizes, training_config,
+               *, validation_evaluator=None, mean=None, std=None, features=None):
+    """Shared MLP optimization for already prepared float32 arrays."""
     loader = DataLoader(TensorDataset(torch.tensor(x_train), torch.tensor(y_train)),
                         batch_size=training_config.batch_size, shuffle=True)
-    model = MLP(x_train.shape[1], model_config.hidden_sizes, training_config.dropout)
+    model = MLP(x_train.shape[1], hidden_sizes, training_config.dropout)
     optimizer = torch.optim.Adam(model.parameters(), lr=training_config.learning_rate)
     criterion = nn.MSELoss()
     best_loss, best_state = float('inf'), None
@@ -79,7 +96,7 @@ def fit(df, scenario, model_config, training_config, *, validation_evaluator=Non
                     val_loss = criterion(model(torch.tensor(x_val)), torch.tensor(y_val)).item()
             else:
                 candidate = dict(model_state=model.state_dict(), input_size=x_train.shape[1],
-                                 hidden_sizes=list(model_config.hidden_sizes), dropout=training_config.dropout,
+                                 hidden_sizes=list(hidden_sizes), dropout=training_config.dropout,
                                  feature_mean=mean.tolist(), feature_std=std.tolist(), features=features)
                 val_loss = validation_evaluator(candidate)
             if val_loss < best_loss:
@@ -91,12 +108,4 @@ def fit(df, scenario, model_config, training_config, *, validation_evaluator=Non
     model.eval()
     with torch.no_grad():
         predictions = model(torch.tensor(x_test)).numpy()
-    if prediction_transform is not None:
-        predictions = prediction_transform(predictions)
-    mse, mae, wmape = compute_metrics(y_test, predictions)
-    metrics = dict(best_val_loss=best_loss, test_mse=mse, test_mae=mae, test_wmape=wmape,
-                   train_rows=len(train), val_rows=len(validation), test_rows=len(test))
-    metrics.update(baseline_metrics(test, y_test, scenario, mae, model_config.features))
-    return dict(model_state=best_state, input_size=x_train.shape[1],
-                hidden_sizes=list(model_config.hidden_sizes), dropout=training_config.dropout,
-                feature_mean=mean.tolist(), feature_std=std.tolist(), features=features, metrics=metrics)
+    return best_state, best_loss, predictions

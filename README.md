@@ -4,7 +4,7 @@
 
 ## Установка
 
-Python 3.10+; проверка выполнена в текущем Linux-окружении. Windows отдельно не проверен.
+Python 3.12+; проверка выполнена в текущем Linux-окружении. Windows отдельно не проверен.
 
 ```bash
 python -m venv .venv
@@ -16,7 +16,27 @@ python -m pip install -r requirements.txt
 python -m pip install --no-deps -e .
 ```
 
-requirements.txt фиксирует версии трёх основных библиотек из проверенного окружения; это не полный lock транзитивных зависимостей.
+requirements.txt фиксирует проверенные версии основных библиотек и новых зависимостей табличного сценария; это пока не полный lock всех транзитивных зависимостей PyTorch. Текущие закреплённые numpy/scipy требуют Python 3.12+.
+
+## Своя таблица CSV/XLSX
+
+```bash
+python -m predictml inspect-table --file examples/tabular/housing.xlsx --sheet training --rows 5
+python -m predictml train-table --file examples/tabular/housing.xlsx --sheet training --config examples/tabular/housing-config.json --output artifacts/housing --epochs 50
+python -m predictml predict-table --file examples/tabular/housing_new.csv --model artifacts/housing/model.joblib --output artifacts/housing/predictions.xlsx
+```
+
+Конфигурация задаёт цель, признаки, исключения и типы. Даты нужно выбрать явно как datetime. Пропуски признаков обрабатываются по train; строки без цели исключаются из обучения. Предобработчик, схема и веса сохраняются вместе в model.joblib. Новые таблицы проверяются по сохранённым именам и типам, неизвестные категории кодируются нулями; обучение при прогнозе не запускается. Загружайте только доверенные joblib-файлы.
+
+В examples/tabular есть две разные синтетические схемы и их JSON-конфигурации. Для временного примера:
+
+```bash
+python -m predictml train-table --file examples/tabular/monthly.csv --config examples/tabular/monthly-config.json --output artifacts/monthly --epochs 50
+```
+
+Здесь цель уже подготовлена для указанного горизонта, признаки известны на дату origin. Система разделяет данные хронологически и исключает пересечение горизонтов на границах, но не сдвигает цель и не строит произвольные временные ряды автоматически. Автоматическая рекурсия остаётся в demand-v2. Подробности и API: [табличный контракт](docs/tabular-contract.md).
+
+Это пока обучение MLP. Линейная модель, baseline и сравнение — итерация 5; Streamlit — итерация 8.
 
 ## Самостоятельный пример
 
@@ -87,6 +107,6 @@ python -m pytest -q
 
 Тесты можно запускать и через `python -m unittest discover -s tests -v`. Для проверки исходных Ruby-вычислений нужен Ruby; при его отсутствии эта проверка явно пропускается. Rails/PostgreSQL для тестов не нужны.
 
-Отчёты: [итерация 1](docs/iteration-1.md), [итерация 2](docs/iteration-2.md), [итерация 3](docs/iteration-3.md). ServiceFlow_back не изменяется, реальные данные и исходные checkpoint не включены.
+Отчёты: [итерация 1](docs/iteration-1.md), [итерация 2](docs/iteration-2.md), [итерация 3](docs/iteration-3.md), [итерация 4](docs/iteration-4.md). ServiceFlow_back не изменяется, реальные данные и исходные checkpoint не включены.
 
-Следующие этапы: универсальные CSV/XLSX и предобработка, линейная модель и единое сравнение, полноценные версии/SQLite, дообучение, Streamlit. Полное ТЗ ещё не завершено.
+Следующие этапы: линейная модель и единое сравнение, полноценные версии/SQLite, дообучение, Streamlit. Полное ТЗ ещё не завершено.

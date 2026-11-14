@@ -6,8 +6,8 @@ build-backend = "setuptools.build_meta"
 name = "predictml-serviceflow"
 version = "0.1.0"
 description = "Standalone extraction of ServiceFlow forecasting"
-requires-python = ">=3.10"
-dependencies = ["numpy>=1.24,<3", "pandas>=2,<3", "torch>=2.1,<3"]
+requires-python = ">=3.12"
+dependencies = ["numpy>=1.26,<3", "pandas>=2.2,<4", "torch>=2.1,<3", "scikit-learn>=1.6,<2", "openpyxl>=3.1.5,<4", "joblib>=1.4,<2"]
 
 [project.optional-dependencies]
 test = ["pytest>=8,<9"]
