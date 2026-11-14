@@ -1,9 +1,4 @@
-"""Explicit paths around the original ServiceFlow algorithms.
-
-Legacy implementations are retained for parity, including their documented
-methodological limitations. Each working directory belongs to one run.
-"""
-from importlib import import_module
+"""Standalone orchestration with explicit inputs and per-call model state."""
 from pathlib import Path
 import json
 
@@ -32,27 +27,30 @@ def run(scenario, data_dir, output_dir, *, train=True, model=None,
     if epochs is not None and epochs < 50:
         raise ValueError('Original trainer requires at least 50 epochs')
     from .contracts import validate_prepared
-    validate_prepared(data, scenario, train)
+    frame = validate_prepared(data, scenario, train)
     output.mkdir(parents=True, exist_ok=True)
-    # Modules are imported per scenario; no Rails or source-repository paths.
-    trainer = import_module(f'predictml.legacy.train_{scenario}')
-    predictor = import_module(f'predictml.legacy.predict_{scenario}')
-    for module in (trainer, predictor):
-        module.CSV_PATH = str(csv)
-        module.MODEL_PATH = str(checkpoint)
-    trainer.METRICS_PATH = str(output / f'{prefix}_metrics.json')
-    predictor.OUTPUT_PATH = str(output / f'{prefix}_predictions.json')
+    from .config import CONFIGS, TrainingConfig
+    from .training import fit
+    from .inference import Predictor
+    from .scenarios import materials, price
+    import torch
+
+    config = CONFIGS[scenario]
+    if train:
+        settings = TrainingConfig(epochs=config.epochs if epochs is None else epochs)
+        state = fit(frame, scenario, config, settings)
+        torch.save(state, checkpoint)
+        (output / f'{prefix}_metrics.json').write_text(
+            json.dumps(state['metrics'], indent=2, ensure_ascii=False), encoding='utf-8')
+        predictor = Predictor(state)
+    else:
+        predictor = Predictor.load(checkpoint)
     if scenario == 'materials':
-        predictor.SERVICE_MATERIALS_PATH = str(data / 'service_materials.json')
-        predictor.MATERIALS_PATH = str(data / 'materials.json')
-        predictor.PREDICT_MONTHS = months
-    original_epochs = trainer.EPOCHS
-    try:
-        if epochs is not None:
-            trainer.EPOCHS = epochs
-        if train:
-            trainer.train()
-        predictor.predict()
-    finally:
-        trainer.EPOCHS = original_epochs
-    return json.loads(Path(predictor.OUTPUT_PATH).read_text())
+        norms = json.loads((data/'service_materials.json').read_text(encoding='utf-8'))
+        records = json.loads((data/'materials.json').read_text(encoding='utf-8'))
+        result = materials.predict(frame, norms, records, predictor, months)
+    else:
+        result = price.predict(frame, predictor)
+    destination = output/f'{prefix}_predictions.json'
+    destination.write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding='utf-8')
+    return result

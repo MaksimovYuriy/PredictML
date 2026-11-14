@@ -125,7 +125,7 @@ class LegacyPurchaseTests(unittest.TestCase):
         import torch
         from unittest.mock import patch
         from predictml.pipeline import run
-        from predictml.legacy import predict_materials as predictor
+        from predictml.config import MATERIALS
 
         class ConstantModel:
             def __init__(self, *args, **kwargs):
@@ -147,8 +147,8 @@ class LegacyPurchaseTests(unittest.TestCase):
             checkpoint = root/'model.pth'
             checkpoint.touch()
             state = dict(input_size=7, hidden_sizes=[32, 16], model_state={},
-                         feature_mean=[0]*7, feature_std=[1]*7, features=[])
-            with patch.object(predictor, 'MaterialMLP', ConstantModel), patch.object(predictor.torch, 'load', return_value=state):
+                         feature_mean=[0]*7, feature_std=[1]*7, features=list(MATERIALS.features))
+            with patch('predictml.inference.MLP', ConstantModel), patch('predictml.inference.torch.load', return_value=state):
                 for horizon in (1, 2, 3):
                     result = run('materials', root/'data', root/f'output-{horizon}',
                                  train=False, model=checkpoint, months=horizon)[0]

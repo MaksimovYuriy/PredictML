@@ -150,7 +150,7 @@ def validate_prepared(data_dir, scenario, train):
                 else:
                     number(frame, filename, column, integer=column != 'price',
                            positive=column in ('id', 'service_id', 'material_id'))
-            # JSON is consumed directly by the legacy predictor: do not accept
+            # JSON is consumed directly by the scenario predictor: do not accept
             # numeric strings that validation would convert only in this frame.
             for record in values:
                 for column in columns:
