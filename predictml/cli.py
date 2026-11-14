@@ -96,9 +96,16 @@ def main():
     p.add_argument('--control', required=True)
     p.add_argument('--sheet')
     p.add_argument('--history', help='optional common demand history CSV before control origin')
+    p = sub.add_parser('ui')
+    p.add_argument('--workspace')
+    p.add_argument('--store')
+    p.add_argument('--port',type=int,default=8501)
     args = parser.parse_args()
     try:
-        if args.command in ('retrain', 'fine-tune'):
+        if args.command == 'ui':
+            from .ui.launcher import launch
+            launch(args.workspace,args.store,args.port)
+        elif args.command in ('retrain', 'fine-tune'):
             import json
             from pathlib import Path
             from .updates import update_version
