@@ -1,0 +1,8 @@
+{
+  "predict_materials.py": "1ed9665efdf77c5be7d30708557093c79d78973930202e8b6e18a9af371edd91",
+  "predict_price.py": "a279f11800b7c3fcbaac567f199e5782809686aa4593c49d689d430843372acd",
+  "train_materials.py": "b4e7ceccc4b7e78fd734a2c7bb7501bebef8bb9e8bc0a76ee48fcc257451eea8",
+  "train_price.py": "d5d10c39d11b3092b88f5610b4f164ea555d8f634477aa499f5b50e000aee7c2",
+  "app/services/material_forecast_service.rb": "2dc22db1389c1f799c5bda572b9bc2adf922d851a342dfc4266bc0d8c5fa368d",
+  "app/services/price_analysis_service.rb": "1e2d56f748238e7e92687215223357a5411cd146804a784b8b54c67365ee0e76"
+}
