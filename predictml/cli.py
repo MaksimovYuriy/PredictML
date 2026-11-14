@@ -100,9 +100,14 @@ def main():
     p.add_argument('--workspace')
     p.add_argument('--store')
     p.add_argument('--port',type=int,default=8501)
+    p = sub.add_parser('demo')
+    p.add_argument('--output',required=True)
     args = parser.parse_args()
     try:
-        if args.command == 'ui':
+        if args.command == 'demo':
+            from .demo import export_examples
+            print(export_examples(args.output))
+        elif args.command == 'ui':
             from .ui.launcher import launch
             launch(args.workspace,args.store,args.port)
         elif args.command in ('retrain', 'fine-tune'):

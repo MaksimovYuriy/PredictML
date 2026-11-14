@@ -1,0 +1,36 @@
+name: acceptance
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - run: python -m pip install -r requirements.txt -r requirements-dev.txt
+      - run: python -m pip check
+      - run: python -m build --wheel --sdist --no-isolation --outdir artifacts/dist
+      - shell: bash
+        run: python -m pip install --no-deps artifacts/dist/*.whl
+      - shell: bash
+        run: |
+          cd "$RUNNER_TEMP"
+          python -m pytest "$GITHUB_WORKSPACE/tests" -q --import-mode=importlib
+          python "$GITHUB_WORKSPACE/scripts/acceptance.py" --output "$RUNNER_TEMP/predictml-scenario"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: acceptance-${{ matrix.os }}
+          path: |
+            artifacts/dist
+            ${{ runner.temp }}/predictml-scenario/acceptance.json

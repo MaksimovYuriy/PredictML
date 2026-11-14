@@ -1,0 +1,17 @@
+{
+  "target": "price",
+  "features": [
+    "area",
+    "district",
+    "built_at"
+  ],
+  "exclude": [
+    "id"
+  ],
+  "types": {
+    "area": "numeric",
+    "district": "categorical",
+    "built_at": "datetime"
+  },
+  "seed": 42
+}

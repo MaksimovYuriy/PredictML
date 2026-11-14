@@ -6,10 +6,9 @@ import traceback
 import streamlit as st
 import pandas as pd
 from predictml.config import TrainingConfig
+from predictml.demo import examples_dir
 from predictml.storage import Store
 from predictml.ui.helpers import save_upload, save_group, layers, version_label
-
-ROOT = Path(__file__).resolve().parents[2]
 
 
 def guarded(action):
@@ -29,7 +28,7 @@ def table_input(key, workspace, *, demo=False):
     if upload is not None:
         path = save_upload(upload, workspace)
     elif use_demo:
-        path = ROOT/'examples/tabular/housing.csv'
+        path = examples_dir()/'tabular/housing.csv'
     else:
         return None, None, None
     from predictml.tabular.io import sheets, read_table
@@ -322,8 +321,8 @@ def main():
     st.set_page_config(page_title='PredictML',page_icon='📈',layout='wide')
     st.title('PredictML')
     st.caption('Локальная регрессия: данные → обучение → сравнение → прогноз → обновление')
-    workspace=st.sidebar.text_input('Рабочая папка',value=os.environ.get('PREDICTML_WORKSPACE',str(ROOT/'artifacts/ui')))
-    store_path=st.sidebar.text_input('Хранилище моделей',value=os.environ.get('PREDICTML_STORE',str(ROOT/'artifacts/ui/models')))
+    workspace=st.sidebar.text_input('Рабочая папка',value=os.environ.get('PREDICTML_WORKSPACE',str(Path.cwd()/'artifacts/ui')))
+    store_path=st.sidebar.text_input('Хранилище моделей',value=os.environ.get('PREDICTML_STORE',str(Path.cwd()/'artifacts/ui/models')))
     page=st.sidebar.radio('Раздел',['Таблица','Спрос и цена','Версии и прогноз','Обновление','Контроль','История'])
     store=guarded(lambda:Store(Path(store_path).expanduser()))
     if store is None:

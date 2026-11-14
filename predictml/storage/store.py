@@ -87,9 +87,9 @@ class Store:
                 db.execute('INSERT INTO versions VALUES(?,?,?,?,?,?,?,?,?,?)',
                            (manifest['version_id'], run_id, manifest['created_at'], manifest['task'],
                             manifest['model_kind'], manifest['schema']['target'], encode(manifest['schema']),
-                            str(bundle.relative_to(self.root)), digest(bundle/'manifest.json'), manifest.get('parent_id')))
+                            bundle.relative_to(self.root).as_posix(), digest(bundle/'manifest.json'), manifest.get('parent_id')))
             db.execute("UPDATE runs SET status='completed',finished_at=?,output_path=? WHERE id=?",
-                       (now(), str(directory.relative_to(self.root)), run_id))
+                       (now(), directory.relative_to(self.root).as_posix(), run_id))
 
     def runs(self):
         with self.connect() as db:

@@ -1,22 +1,35 @@
 # PredictML — выделенный модуль ServiceFlow
 
-Самостоятельный Python-пакет: без Rails, Sidekiq, PostgreSQL и файлов исходного репозитория. Выполнены отделение по контрактам, их проверки и выделение общего ядра. Полный объём универсальной программы из ТЗ ещё не реализован.
+Самостоятельная локальная программа числовой регрессии: CSV/XLSX, baseline/линейная модель/MLP, прогноз спроса и закупок, рекомендация цены, версии SQLite, обновления и Streamlit. Rails, Sidekiq, PostgreSQL и файлы ServiceFlow для работы не нужны. Данные примеров синтетические. Программа не утверждает, что MLP обязательно лучше линейной модели.
 
 ## Установка
 
-Python 3.12+; проверка выполнена в текущем Linux-окружении. Windows отдельно не проверен.
+Поддерживаемый профиль поставки: Python 3.12, x86-64, CPU. GPU не требуется. requirements.txt фиксирует runtime-зависимости, включая CPU-сборку PyTorch; её wheel скачивается с официального индекса PyTorch. Не заменяйте профиль произвольным обновлением библиотек, если собираетесь применять уже сохранённые версии моделей.
+
+Linux / WSL2:
 
 ```bash
-python -m venv .venv
-# Linux:
+python3.12 -m venv .venv
 source .venv/bin/activate
-# Windows PowerShell вместо предыдущей команды:
-# .venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
 python -m pip install --no-deps -e .
+python -m pip check
+python -m predictml ui
 ```
 
-requirements.txt фиксирует проверенные версии основных библиотек и новых зависимостей табличного сценария; это пока не полный lock всех транзитивных зависимостей PyTorch. Текущие закреплённые numpy/scipy требуют Python 3.12+.
+Windows PowerShell, без изменения execution policy:
+
+```powershell
+py -3.12 -m venv .venv
+.venv\Scripts\python.exe -m pip install -r requirements.txt
+.venv\Scripts\python.exe -m pip install --no-deps -e .
+.venv\Scripts\python.exe -m pip check
+.venv\Scripts\python.exe -m predictml ui
+```
+
+Далее `python` означает интерпретатор этого окружения; на Windows его можно заменять на `.venv\Scripts\python.exe`. Linux/WSL2 проверяется фактически; нативная Windows требует отдельного прогона CI/рабочей станции, см. [приёмку](docs/acceptance.md).
+
+Можно установить собранный wheel вместо editable-пакета: `python -m pip install --no-deps PATH_TO_WHEEL.whl`. Затем в любой рабочей папке выполните `python -m predictml demo --output examples`, чтобы получить встроенные примеры. UI использует встроенный пример и создаёт рабочие файлы в текущей папке, не в site-packages.
 
 ## Графический интерфейс
 
@@ -166,12 +179,12 @@ Python API: `from predictml.pipeline import run`; параметры соотв�
 Общая MLP — models/mlp.py, тренер — training.py, загрузчик — inference.py. Исправленный спрос — demand.py/demand_pipeline.py, закупки — purchasing.py. scenarios/ содержит исходные предметные алгоритмы для совместимости. Четыре неизменённых исходных Python-скрипта сохранены только в tests/reference/python. Контрольные SHA-256 — docs/source-manifest.json. Ядро не зависит от Streamlit.
 
 ```bash
-python -m pip install -e ".[test]"
+python -m pip install -r requirements-dev.txt
 python -m pytest -q
 ```
 
 Тесты можно запускать и через `python -m unittest discover -s tests -v`. Для проверки исходных Ruby-вычислений нужен Ruby; при его отсутствии эта проверка явно пропускается. Rails/PostgreSQL для тестов не нужны.
 
-Отчёты: [итерация 1](docs/iteration-1.md), [итерация 2](docs/iteration-2.md), [итерация 3](docs/iteration-3.md), [итерация 4](docs/iteration-4.md), [итерация 5](docs/iteration-5.md), [итерация 6](docs/iteration-6.md), [итерация 7](docs/iteration-7.md), [итерация 8](docs/iteration-8.md). ServiceFlow_back не изменяется, реальные данные и исходные checkpoint не включены.
+Отчёты: [итерация 1](docs/iteration-1.md), [итерация 2](docs/iteration-2.md), [итерация 3](docs/iteration-3.md), [итерация 4](docs/iteration-4.md), [итерация 5](docs/iteration-5.md), [итерация 6](docs/iteration-6.md), [итерация 7](docs/iteration-7.md), [итерация 8](docs/iteration-8.md), [итерация 9](docs/iteration-9.md). ServiceFlow_back не изменяется, реальные данные и исходные checkpoint не включены.
 
-Осталась итерация 9: итоговая приёмка, чистое окружение, проверка установки и документации Windows/Linux. Полное ТЗ ещё не завершено.
+Архитектура: [architecture.md](docs/architecture.md). Перенос и ограничения: [transfer-report.md](docs/transfer-report.md). Итоговая проверка и её границы: [acceptance.md](docs/acceptance.md). Материалы курса и главы работы — отдельный следующий этап.
