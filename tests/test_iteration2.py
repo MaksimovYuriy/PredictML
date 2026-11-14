@@ -10,10 +10,14 @@ import unittest
 import torch
 from predictml.config import CONFIGS, TrainingConfig
 from predictml.models import MLP
-from predictml.pipeline import run
-from predictml.preparation import prepare
+from predictml.pipeline import run as current_run
+from predictml.preparation import prepare_legacy as prepare
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def run(*args, **kwargs):
+    return current_run(*args, mode="legacy-parity", **kwargs)
 
 
 def reference(name):

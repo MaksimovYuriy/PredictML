@@ -7,6 +7,7 @@ from .models import MLP
 
 class Predictor:
     def __init__(self, checkpoint):
+        self.demand_context = checkpoint.get('demand_context')
         self.features = tuple(checkpoint['features'])
         self.mean = np.array(checkpoint['feature_mean'], dtype=np.float32)
         self.std = np.array(checkpoint['feature_std'], dtype=np.float32)

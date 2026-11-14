@@ -7,7 +7,7 @@ import tempfile
 import unittest
 import pandas as pd
 from predictml.contracts import load_raw, validate_prepared
-from predictml.preparation import prepare
+from predictml.preparation import prepare_legacy as prepare
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -124,7 +124,10 @@ class LegacyPurchaseTests(unittest.TestCase):
     def test_fixed_demand_purchase_and_year_rollover(self):
         import torch
         from unittest.mock import patch
-        from predictml.pipeline import run
+        from predictml.pipeline import run as current_run
+
+        def run(*args, **kwargs):
+            return current_run(*args, mode="legacy-parity", **kwargs)
         from predictml.config import MATERIALS
 
         class ConstantModel:

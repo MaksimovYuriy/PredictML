@@ -1,4 +1,4 @@
-"""Shared trainer; preserves the original optimization and split policies."""
+"""Shared trainer with explicit validation objective and legacy split defaults."""
 import numpy as np
 import torch
 from torch import nn
@@ -32,10 +32,10 @@ def split_data(df, scenario):
     return parts
 
 
-def baseline_metrics(test_df, targets, scenario, mae):
+def baseline_metrics(test_df, targets, scenario, mae, features=None):
     if scenario == 'materials':
-        _, lag_mae, lag_wmape = compute_metrics(targets, test_df.bookings_lag_1.values.astype(np.float32))
-        _, avg_mae, avg_wmape = compute_metrics(targets, test_df.avg_bookings_last_3m.values.astype(np.float32))
+        _, lag_mae, lag_wmape = compute_metrics(targets, test_df[(features or ('bookings_lag_1',))[0]].values.astype(np.float32))
+        _, avg_mae, avg_wmape = compute_metrics(targets, test_df[(features or ('', '', '', 'avg_bookings_last_3m'))[3]].values.astype(np.float32))
         best = min(lag_mae, avg_mae)
         result = dict(baseline_lag1_mae=lag_mae, baseline_lag1_wmape=lag_wmape,
                       baseline_avg3_mae=avg_mae, baseline_avg3_wmape=avg_wmape)
@@ -46,8 +46,8 @@ def baseline_metrics(test_df, targets, scenario, mae):
     return result
 
 
-def fit(df, scenario, model_config, training_config):
-    """Return a legacy-compatible checkpoint; no IO or global mutations."""
+def fit(df, scenario, model_config, training_config, *, validation_evaluator=None, prediction_transform=None):
+    """Return weights and train-only scaling; optional recursive validation."""
     train, validation, test = split_data(df, scenario)
     features = list(model_config.features)
     def arrays(part):
@@ -74,8 +74,14 @@ def fit(df, scenario, model_config, training_config):
             optimizer.step()
         if (epoch+1) % training_config.validation_interval == 0:
             model.eval()
-            with torch.no_grad():
-                val_loss = criterion(model(torch.tensor(x_val)), torch.tensor(y_val)).item()
+            if validation_evaluator is None:
+                with torch.no_grad():
+                    val_loss = criterion(model(torch.tensor(x_val)), torch.tensor(y_val)).item()
+            else:
+                candidate = dict(model_state=model.state_dict(), input_size=x_train.shape[1],
+                                 hidden_sizes=list(model_config.hidden_sizes), dropout=training_config.dropout,
+                                 feature_mean=mean.tolist(), feature_std=std.tolist(), features=features)
+                val_loss = validation_evaluator(candidate)
             if val_loss < best_loss:
                 best_loss = val_loss
                 best_state = {key: value.clone() for key, value in model.state_dict().items()}
@@ -85,10 +91,12 @@ def fit(df, scenario, model_config, training_config):
     model.eval()
     with torch.no_grad():
         predictions = model(torch.tensor(x_test)).numpy()
+    if prediction_transform is not None:
+        predictions = prediction_transform(predictions)
     mse, mae, wmape = compute_metrics(y_test, predictions)
     metrics = dict(best_val_loss=best_loss, test_mse=mse, test_mae=mae, test_wmape=wmape,
                    train_rows=len(train), val_rows=len(validation), test_rows=len(test))
-    metrics.update(baseline_metrics(test, y_test, scenario, mae))
+    metrics.update(baseline_metrics(test, y_test, scenario, mae, model_config.features))
     return dict(model_state=best_state, input_size=x_train.shape[1],
                 hidden_sizes=list(model_config.hidden_sizes), dropout=training_config.dropout,
                 feature_mean=mean.tolist(), feature_std=std.tolist(), features=features, metrics=metrics)

@@ -2,7 +2,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
-from predictml.preparation import prepare
+from predictml.preparation import prepare_legacy as prepare
 
 
 class Contracts(unittest.TestCase):
@@ -24,7 +24,10 @@ class Contracts(unittest.TestCase):
             self.assertEqual(json.loads((root/'materials.json').read_text())[0]['current_quantity'], 10)
 
     def test_invalid_horizon(self):
-        from predictml.pipeline import run
+        from predictml.pipeline import run as current_run
+
+        def run(*args, **kwargs):
+            return current_run(*args, mode="legacy-parity", **kwargs)
         with self.assertRaisesRegex(ValueError, 'months'):
             run('materials', '.', '.', months=4)
 

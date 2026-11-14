@@ -4,11 +4,16 @@ import json
 
 
 def run(scenario, data_dir, output_dir, *, train=True, model=None,
-        months=3, epochs=None):
+        months=3, epochs=None, mode="demand-v2"):
     if scenario not in ('materials', 'price'):
         raise ValueError('scenario must be materials or price')
-    if months not in (1, 2, 3):
+    if type(months) is not int or months not in (1, 2, 3):
         raise ValueError('months must be 1, 2 or 3')
+    if mode not in ('demand-v2', 'legacy-parity'):
+        raise ValueError('mode: expected demand-v2 or legacy-parity')
+    if scenario == 'materials' and mode == 'demand-v2':
+        from .demand_pipeline import run_demand
+        return run_demand(data_dir, output_dir, train=train, model=model, months=months, epochs=epochs)
     data = Path(data_dir).resolve()
     output = Path(output_dir).resolve()
     prefix = 'material' if scenario == 'materials' else 'price'

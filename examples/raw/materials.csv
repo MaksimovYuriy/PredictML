@@ -1,2 +1,2 @@
-id,title,quantity,minimal_quantity,price
-1,Synthetic material,10,5,20
+id,title,quantity,minimal_quantity,price,unit,purchase_step
+1,Synthetic material,10,5,20,piece,1

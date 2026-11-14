@@ -15,10 +15,10 @@ def ruby_round(value, digits):
     return float(Decimal(str(value)).quantize(Decimal(1).scaleb(-digits), rounding=ROUND_HALF_UP))
 
 
-def prepare(data_dir, output_dir, as_of):
+def prepare_legacy(data_dir, output_dir, as_of, *, tables=None):
     data, output = Path(data_dir), Path(output_dir)
     from .contracts import load_raw, RAW_COLUMNS
-    tables = load_raw(data)
+    tables = load_raw(data) if tables is None else tables
     contracts = RAW_COLUMNS
     notes, services, materials, norms = (tables[n] for n in contracts)
     try:
@@ -86,3 +86,27 @@ def prepare(data_dir, output_dir, as_of):
     (output/'materials.json').write_text(exported.to_json(orient='records', force_ascii=False), encoding='utf-8')
     (output/'service_materials.json').write_text(norms[contracts['service_materials']].to_json(orient='records'), encoding='utf-8')
     (output/'preparation.json').write_text(json.dumps({'mode': 'legacy-parity', 'as_of': str(as_of), 'includes_partial_month': True}), encoding='utf-8')
+
+
+def prepare(data_dir, output_dir, as_of, *, mode='demand-v2'):
+    """Prepare full-month demand by default; legacy parity is opt-in."""
+    if mode == 'legacy-parity':
+        return prepare_legacy(data_dir, output_dir, as_of)
+    if mode != 'demand-v2':
+        raise ValueError('mode: expected demand-v2 or legacy-parity')
+    from .contracts import load_raw
+    from .demand import prepare_monthly
+    tables = load_raw(data_dir, fractional_quantities=True)
+    monthly, metadata = prepare_monthly(tables, as_of)
+    output = Path(output_dir)
+    # Reuse price recommendation preparation, bounded by the same full months.
+    # It retains its formula; its labels do not claim future-price forecasting.
+    prepare_legacy(data_dir, output, metadata['last_complete_month']+'-01', tables=tables)
+    (output/'material_forecast.csv').unlink(missing_ok=True)
+    monthly.to_csv(output/'monthly_demand.csv', index=False)
+    materials = tables['materials'].rename(columns={'quantity': 'current_quantity'}).copy()
+    materials['price'] = materials.price.fillna(0)
+    (output/'materials.json').write_text(materials[
+        ['id', 'title', 'current_quantity', 'minimal_quantity', 'price', 'unit', 'purchase_step']
+    ].to_json(orient='records', force_ascii=False), encoding='utf-8')
+    (output/'preparation.json').write_text(json.dumps(metadata, indent=2), encoding='utf-8')

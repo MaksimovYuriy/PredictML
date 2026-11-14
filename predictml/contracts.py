@@ -45,7 +45,7 @@ def number(table, name, column, *, integer=False, positive=False, nullable=False
     table[column] = values
 
 
-def load_raw(data_dir):
+def load_raw(data_dir, *, fractional_quantities=False):
     tables = {name: read_csv(Path(data_dir)/f'{name}.csv', cols)
               for name, cols in RAW_COLUMNS.items()}
     for name, table in tables.items():
@@ -60,7 +60,7 @@ def load_raw(data_dir):
                           'materials': ['quantity', 'minimal_quantity', 'price'],
                           'service_materials': ['required_quantity']}.items():
         for column in columns:
-            number(tables[name], name, column, integer=column in ('quantity', 'minimal_quantity', 'required_quantity'),
+            number(tables[name], name, column, integer=not fractional_quantities and column in ('quantity', 'minimal_quantity', 'required_quantity'),
                    positive=name == 'services', nullable=name == 'materials' and column == 'price')
     for name in ('notes', 'service_materials'):
         if not tables[name].service_id.isin(tables['services'].id).all():
