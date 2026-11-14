@@ -150,7 +150,7 @@ def forecast(history_frame, predictor, months=3, *, baseline=None):
     return result
 
 
-def evaluate(frame, predictor, start, *, months=3):
+def evaluate(frame, predictor, start, *, months=3, model_name="mlp"):
     """One origin before start. Actual values are used ONLY for scoring."""
     frame = validate_monthly(frame)
     history = frame[frame.ym < start]
@@ -158,7 +158,7 @@ def evaluate(frame, predictor, start, *, months=3):
                for r in frame[frame.ym >= start].itertuples()}
     report = dict(origin=month_label(start-1), start=month_label(start), horizon=months,
                   units='completed_bookings', policy='fixed-origin-recursive', models={})
-    for label, baseline in [('mlp', None), ('last_value', 'last_value'), ('mean3', 'mean3')]:
+    for label, baseline in [(model_name, None), ('last_value', 'last_value'), ('mean3', 'mean3')]:
         predictions = forecast(history, predictor, months, baseline=baseline)
         rows = []
         for row in predictions:
@@ -175,12 +175,12 @@ def evaluate(frame, predictor, start, *, months=3):
 
 
 
-def evaluate_one_step(frame, predictor, start):
+def evaluate_one_step(frame, predictor, start, model_name="mlp"):
     table = feature_table(frame)
     table = table[table.ym >= start]
     predicted = np.maximum(predictor.predict(table[list(FEATURES)].values).reshape(-1), 0)
     report = dict(policy='rolling-one-step-observed-history', units='completed_bookings', models={})
-    for name, values in [('mlp', predicted), ('last_value', table.demand_lag_1.values),
+    for name, values in [(model_name, predicted), ('last_value', table.demand_lag_1.values),
                          ('mean3', table.demand_mean_3.values)]:
         rows = [dict(service_id=int(row.service_id), year=int(row.year), month=int(row.month),
                      actual=float(row.total_bookings), predicted_bookings=float(value))
@@ -194,7 +194,7 @@ def month_label(ym):
     return f'{year:04d}-{month+1:02d}'
 
 
-def fit_demand(frame, metadata, settings):
+def fit_demand(frame, metadata, settings, *, model_kind="mlp", hidden_sizes=None, training_log=None):
     from .training import fit, split_data
     from .inference import Predictor
     frame = validate_monthly(frame)
@@ -211,20 +211,23 @@ def fit_demand(frame, metadata, settings):
     train, validation, test = split_data(features, 'materials')
     val_start, test_start = int(validation.ym.min()), int(test.ym.min())
     def recursive_validation(state):
-        report = evaluate(frame[frame.ym < test_start], Predictor(state), val_start)
-        return report['models']['mlp']['metrics']['mse']
-    state = fit(features, 'materials', CONFIG, settings,
-                validation_evaluator=recursive_validation, prediction_transform=lambda values: np.maximum(values, 0))
+        report = evaluate(frame[frame.ym < test_start], Predictor(state), val_start, model_name=model_kind)
+        return report['models'][model_kind]['metrics']['mse']
+    from dataclasses import replace
+    config = CONFIG if hidden_sizes is None else replace(CONFIG, hidden_sizes=tuple(hidden_sizes))
+    state = fit(features, 'materials', config, settings,
+                validation_evaluator=recursive_validation, prediction_transform=lambda values: np.maximum(values, 0),
+                model_kind=model_kind, training_log=training_log)
     predictor = Predictor(state)
     # One-step metrics use actual previous observations; label them explicitly.
     best_val_loss = state['metrics']['best_val_loss']
-    one_step = evaluate_one_step(frame, predictor, test_start)
-    report = evaluate(frame, predictor, test_start)
+    one_step = evaluate_one_step(frame, predictor, test_start, model_name=model_kind)
+    report = evaluate(frame, predictor, test_start, model_name=model_kind)
     bounds = {name: dict(rows=len(part), start=month_label(part.ym.min()), end=month_label(part.ym.max()))
               for name, part in [('train', train), ('validation', validation), ('test', test)]}
     state['metrics'] = dict(one_step=one_step, recursive_test=report,
                             best_val_loss=best_val_loss, validation_policy='fixed-origin-recursive-mse',
-                            recursive_validation=evaluate(frame[frame.ym < test_start], predictor, val_start),
+                            recursive_validation=evaluate(frame[frame.ym < test_start], predictor, val_start, model_name=model_kind),
                             split=bounds, units='completed_bookings')
     state['demand_context'] = dict(contract_version=2, frequency='MS', target='total_bookings',
                                    feature_policy='causal-count-lags-v2', horizon_max=3,

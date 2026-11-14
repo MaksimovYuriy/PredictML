@@ -36,7 +36,9 @@ python -m predictml train-table --file examples/tabular/monthly.csv --config exa
 
 Здесь цель уже подготовлена для указанного горизонта, признаки известны на дату origin. Система разделяет данные хронологически и исключает пересечение горизонтов на границах, но не сдвигает цель и не строит произвольные временные ряды автоматически. Автоматическая рекурсия остаётся в demand-v2. Подробности и API: [табличный контракт](docs/tabular-contract.md).
 
-Это пока обучение MLP. Линейная модель, baseline и сравнение — итерация 5; Streamlit — итерация 8.
+train-table сравнивает среднее train (baseline), линейную регрессию и MLP на одних выборках и одном предобработчике. В model.joblib по умолчанию остаётся MLP; --model-kind best выбирает минимум validation MSE. Также сохраняются отдельные model-linear.joblib, model-mlp.joblib и model-baseline.joblib. Сравнение: comparison.html, comparison.csv, comparison_predictions.csv и report.json. Test используется только для итоговой оценки.
+
+Настройки: --hidden-sizes 64 32, --learning-rate 0.001, --batch-size 32, --epochs 200, --seed 42, --patience 20, --min-delta 0, --validation-interval 1. Флаг --disable-early-stopping отключает раннюю остановку. По умолчанию train-table/compare проверяют validation каждую эпоху и восстанавливают лучшие веса. Параметры и фактически выполненные эпохи записываются в отчёт.
 
 ## Самостоятельный пример
 
@@ -82,6 +84,21 @@ Checkpoint хранит агрегированную историю. Для пр
 
 Рекомендация цены остаётся воспроизведением исходного формульного правила; она не прогнозирует наблюдаемую будущую цену.
 
+## Сравнение моделей спроса и цены
+
+```bash
+python -m predictml compare materials --data artifacts/data --output artifacts/compare-demand --epochs 200 --seed 42
+python -m predictml compare price --data artifacts/data --output artifacts/compare-price --epochs 200 --seed 42
+python -m predictml predict materials --data artifacts/data --output artifacts/linear-demand --model artifacts/compare-demand/material-linear.pth --months 3
+python -m predictml predict price --data artifacts/data --output artifacts/linear-price --model artifacts/compare-price/price-linear.pth
+```
+
+Получаются четыре обученные модели: material-mlp.pth, material-linear.pth, price-mlp.pth, price-linear.pth. Baseline спроса — последнее значение и среднее трёх, цены — текущая цена. Для цены отдельно показан прямой расчёт исходного правила; он может закономерно оказаться точнее моделей.
+
+Спрос сравнивается в одинаковой рекурсии 1–3 месяцев от одной точки. Цена оценивается на месячных строках в денежных единицах как воспроизведение формулы; это не оценка будущей рыночной цены или прибыли. Подробные условия — [отчёт итерации 5](docs/iteration-5.md).
+
+Откройте comparison.html в выходном каталоге: таблица метрик, график, параметры и границы выборок. comparison.json сохраняет исходные данные отчёта; comparison.csv — метрики. Выбор recommended_model основан на validation MSE, а не на test. Неприменимые wMAPE/R² отображаются как неопределённые.
+
 ## Совместимость с ServiceFlow
 
 Для старых экспортов и ratio-весов явно выбирайте legacy-parity:
@@ -107,6 +124,6 @@ python -m pytest -q
 
 Тесты можно запускать и через `python -m unittest discover -s tests -v`. Для проверки исходных Ruby-вычислений нужен Ruby; при его отсутствии эта проверка явно пропускается. Rails/PostgreSQL для тестов не нужны.
 
-Отчёты: [итерация 1](docs/iteration-1.md), [итерация 2](docs/iteration-2.md), [итерация 3](docs/iteration-3.md), [итерация 4](docs/iteration-4.md). ServiceFlow_back не изменяется, реальные данные и исходные checkpoint не включены.
+Отчёты: [итерация 1](docs/iteration-1.md), [итерация 2](docs/iteration-2.md), [итерация 3](docs/iteration-3.md), [итерация 4](docs/iteration-4.md), [итерация 5](docs/iteration-5.md). ServiceFlow_back не изменяется, реальные данные и исходные checkpoint не включены.
 
-Следующие этапы: линейная модель и единое сравнение, полноценные версии/SQLite, дообучение, Streamlit. Полное ТЗ ещё не завершено.
+Следующие этапы: полноценные версии/SQLite, дообучение, Streamlit. Полное ТЗ ещё не завершено.

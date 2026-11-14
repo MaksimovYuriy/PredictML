@@ -28,9 +28,18 @@ class TrainingConfig:
     batch_size: int = 32
     dropout: float = 0.1
     validation_interval: int = 50
+    patience: int | None = None
+    min_delta: float = 0.0
+    seed: int | None = None
 
     def __post_init__(self):
         import math
+        if self.patience is not None and (type(self.patience) is not int or self.patience < 1):
+            raise ValueError('patience must be a positive number of validation checks')
+        if not math.isfinite(self.min_delta) or self.min_delta < 0:
+            raise ValueError('min_delta must be finite and nonnegative')
+        if self.seed is not None and (type(self.seed) is not int or not 0 <= self.seed < 2**32):
+            raise ValueError('seed must be in [0, 2**32)')
         if type(self.epochs) is not int or type(self.validation_interval) is not int or self.validation_interval <= 0 or self.epochs < self.validation_interval:
             raise ValueError('epochs must reach a positive validation_interval')
         if type(self.batch_size) is not int or self.batch_size <= 0:

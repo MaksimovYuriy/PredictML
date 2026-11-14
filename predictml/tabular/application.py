@@ -1,5 +1,7 @@
 """Train, save and apply an independent model for a configured table schema."""
 from dataclasses import asdict
+from datetime import datetime, timezone
+import uuid
 from pathlib import Path
 import json
 import numpy as np
@@ -67,12 +69,13 @@ class TabularModel:
         self.schema, self.preprocessor = schema, preprocessor
         self.checkpoint, self.report = checkpoint, report
 
-    def predict(self, frame):
+    def predict(self, frame, model_kind=None):
         if frame.empty:
             raise ValueError('prediction: no rows')
         values = self.preprocessor.transform(frame)
         with torch.random.fork_rng(devices=[]):
-            result = Predictor(self.checkpoint).predict(values).reshape(-1)
+            state = self.checkpoint if model_kind is None else getattr(self, 'checkpoints', {'mlp': self.checkpoint})[model_kind]
+            result = Predictor(state).predict(values).reshape(-1)
         if not np.isfinite(result).all():
             raise ValueError('prediction: non-finite model output')
         return result
@@ -94,7 +97,7 @@ class TabularModel:
         return model
 
 
-def train_table(frame, config, settings=None, hidden_sizes=(32, 16)):
+def train_table(frame, config, settings=None, hidden_sizes=(32, 16), model_kind="mlp"):
     if not isinstance(config, TableConfig):
         config = TableConfig.from_dict(config)
     if frame.columns.duplicated().any():
@@ -124,39 +127,52 @@ def train_table(frame, config, settings=None, hidden_sizes=(32, 16)):
     if any(not np.isfinite(y).all() for y in targets):
         raise ValueError(f'{config.target}: values exceed float32 range')
     settings = settings or TrainingConfig(epochs=50)
-    # Local seed context makes sequential calls reproducible without changing
-    # the caller's RNG state. Parallel training is not promised deterministic.
-    with torch.random.fork_rng(devices=[]):
-        torch.manual_seed(config.seed)
-        weights, best_loss, predictions = fit_arrays(
-            arrays[0], targets[0], arrays[1], targets[1], arrays[2], hidden_sizes, settings)
-    if not np.isfinite(predictions).all():
-        raise ValueError('training: non-finite test predictions')
-    checkpoint = dict(model_state=weights, input_size=arrays[0].shape[1],
-                      hidden_sizes=list(hidden_sizes), dropout=settings.dropout,
-                      feature_mean=[0.0]*arrays[0].shape[1], feature_std=[1.0]*arrays[0].shape[1],
-                      features=list(preprocessor.output_names))
+    from ..regressors import fit_candidates
+    states, predictions_by_model, comparison, recommended = fit_candidates(
+        arrays, targets, preprocessor.output_names, settings, hidden_sizes, seed=config.seed)
+    if model_kind == 'best':
+        model_kind = recommended
+    if model_kind not in states:
+        raise ValueError('model_kind must be mlp, linear, baseline or best')
+    checkpoint = states[model_kind]
+    predictions = predictions_by_model[model_kind]
+    best_loss = comparison[model_kind]['validation_mse']
     schema = dict(target=config.target, features=list(features), types=kinds,
                   excluded=list(config.exclude), temporal=config.temporal,
                   unknown_categories='all-zero encoding', extra_columns='ignored',
                   column_order='saved names', target_units='original')
     split['parts'] = {name: dict(rows=len(part), source_rows=positions[part].tolist())
                       for name, part in zip(('train', 'validation', 'test'), parts)}
-    report = dict(input_rows=len(frame), dropped_missing_target=int((~keep).sum()), split=split,
+    report = dict(run_id=str(uuid.uuid4()), created_at=datetime.now(timezone.utc).isoformat(), input_rows=len(frame), dropped_missing_target=int((~keep).sum()), split=split,
                   best_validation_mse=best_loss, test=regression_metrics(targets[2].reshape(-1), predictions.reshape(-1)),
-                  settings=asdict(settings), seed=config.seed, transformed_features=len(preprocessor.output_names))
+                  settings=asdict(settings), seed=config.seed, transformed_features=len(preprocessor.output_names),
+                  models=comparison, recommended_model=recommended, selected_model=model_kind,
+                  selection_policy='minimum validation MSE; test is final evaluation')
     table = pd.DataFrame(dict(source_row=positions[test], actual=targets[2].reshape(-1), prediction=predictions.reshape(-1)))
-    return TabularModel(schema, preprocessor, checkpoint, report), table
+    for name, values in predictions_by_model.items():
+        table[f'prediction_{name}'] = values
+    model = TabularModel(schema, preprocessor, checkpoint, report)
+    model.checkpoints = states
+    return model, table
 
 
-def train_file(path, output_dir, config, *, sheet=None, settings=None):
-    model, predictions = train_table(read_table(path, sheet), config, settings)
+def train_file(path, output_dir, config, *, sheet=None, settings=None, hidden_sizes=(32, 16), model_kind="mlp"):
+    model, predictions = train_table(read_table(path, sheet), config, settings, hidden_sizes, model_kind)
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=True)
     model.save(output/'model.joblib')
+    for name, state in model.checkpoints.items():
+        variant = TabularModel(model.schema, model.preprocessor, state, {**model.report, 'selected_model': name})
+        variant.save(output/f'model-{name}.joblib')
     for name, value in [('schema', model.schema), ('report', model.report)]:
         (output/f'{name}.json').write_text(json.dumps(value, indent=2, ensure_ascii=False, allow_nan=False), encoding='utf-8')
     predictions.to_csv(output/'test_predictions.csv', index=False)
+    from ..reporting import export_comparison
+    rows = [dict(source_row=int(row.source_row), actual=float(row.actual),
+                 prediction=float(getattr(row, f'prediction_{name}')), model=name)
+            for row in predictions.itertuples() for name in model.checkpoints]
+    export_comparison(output, model.report['models'], rows, model.report['split'],
+                      {k: v for k, v in model.report.items() if k not in ('models', 'split')})
     return model
 
 

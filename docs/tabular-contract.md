@@ -76,4 +76,4 @@ loaded = TabularModel.load('artifacts/run/model.joblib')
 values = loaded.predict(new_frame)
 ```
 
-Сейчас табличная модель — общая MLP, лучшие веса выбираются на validation. Baseline, линейная регрессия, единое сравнение и early stopping появятся в итерации 5. Streamlit не требуется и будет добавлен позже.
+С итерации 5 train-table сравнивает baseline (среднее train), линейную регрессию и MLP на одном предобработчике и разбиении. Сохраняются model-mlp.joblib, model-linear.joblib, model-baseline.joblib и выбранный model.joblib; --model-kind best выбирает по validation MSE. В отчёте — метрики всех алгоритмов, рекомендованная и явно выбранная модель, время и журнал early stopping MLP. Добавлены comparison.csv, comparison_predictions.csv и comparison.html. Подробности: iteration-5.md. Streamlit будет добавлен позже.

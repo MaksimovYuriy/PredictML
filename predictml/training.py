@@ -46,7 +46,7 @@ def baseline_metrics(test_df, targets, scenario, mae, features=None):
     return result
 
 
-def fit(df, scenario, model_config, training_config, *, validation_evaluator=None, prediction_transform=None):
+def fit(df, scenario, model_config, training_config, *, validation_evaluator=None, prediction_transform=None, model_kind="mlp", training_log=None):
     """Return weights and train-only scaling; optional recursive validation."""
     train, validation, test = split_data(df, scenario)
     features = list(model_config.features)
@@ -59,22 +59,33 @@ def fit(df, scenario, model_config, training_config, *, validation_evaluator=Non
     mean, std = x_train.mean(axis=0), x_train.std(axis=0)
     std[std == 0] = 1
     x_train, x_val, x_test = [(x-mean)/std for x in (x_train, x_val, x_test)]
-    best_state, best_loss, predictions = fit_arrays(
-        x_train, y_train, x_val, y_val, x_test, model_config.hidden_sizes, training_config,
-        validation_evaluator=validation_evaluator, mean=mean, std=std, features=features)
+    if model_kind != 'mlp' or training_config.seed is not None or training_log is not None:
+        from .regressors import fit_estimator
+        state, predictions, details = fit_estimator(
+            x_train, y_train, x_val, y_val, x_test, model_kind, model_config.hidden_sizes,
+            training_config, features, mean, std, validation_evaluator=validation_evaluator)
+        best_loss = details['validation_mse']
+        if training_log is not None:
+            training_log.update(details)
+    else:
+        best_state, best_loss, predictions = fit_arrays(
+            x_train, y_train, x_val, y_val, x_test, model_config.hidden_sizes, training_config,
+            validation_evaluator=validation_evaluator, mean=mean, std=std, features=features)
+        state = dict(model_state=best_state, input_size=x_train.shape[1],
+                     hidden_sizes=list(model_config.hidden_sizes), dropout=training_config.dropout,
+                     feature_mean=mean.tolist(), feature_std=std.tolist(), features=features)
     if prediction_transform is not None:
         predictions = prediction_transform(predictions)
     mse, mae, wmape = compute_metrics(y_test, predictions)
     metrics = dict(best_val_loss=best_loss, test_mse=mse, test_mae=mae, test_wmape=wmape,
                    train_rows=len(train), val_rows=len(validation), test_rows=len(test))
     metrics.update(baseline_metrics(test, y_test, scenario, mae, model_config.features))
-    return dict(model_state=best_state, input_size=x_train.shape[1],
-                hidden_sizes=list(model_config.hidden_sizes), dropout=training_config.dropout,
-                feature_mean=mean.tolist(), feature_std=std.tolist(), features=features, metrics=metrics)
+    state['metrics'] = metrics
+    return state
 
 
 def fit_arrays(x_train, y_train, x_val, y_val, x_test, hidden_sizes, training_config,
-               *, validation_evaluator=None, mean=None, std=None, features=None):
+               *, validation_evaluator=None, mean=None, std=None, features=None, training_log=None):
     """Shared MLP optimization for already prepared float32 arrays."""
     loader = DataLoader(TensorDataset(torch.tensor(x_train), torch.tensor(y_train)),
                         batch_size=training_config.batch_size, shuffle=True)
@@ -82,6 +93,8 @@ def fit_arrays(x_train, y_train, x_val, y_val, x_test, hidden_sizes, training_co
     optimizer = torch.optim.Adam(model.parameters(), lr=training_config.learning_rate)
     criterion = nn.MSELoss()
     best_loss, best_state = float('inf'), None
+    patience_loss, stale, best_epoch = float('inf'), 0, None
+    curve = []
     for epoch in range(training_config.epochs):
         model.train()
         for xb, yb in loader:
@@ -102,10 +115,21 @@ def fit_arrays(x_train, y_train, x_val, y_val, x_test, hidden_sizes, training_co
             if val_loss < best_loss:
                 best_loss = val_loss
                 best_state = {key: value.clone() for key, value in model.state_dict().items()}
+                best_epoch = epoch+1
+            if val_loss < patience_loss-training_config.min_delta:
+                patience_loss, stale = val_loss, 0
+            else:
+                stale += 1
+            curve.append(dict(epoch=epoch+1, validation_mse=float(val_loss)))
+            if training_config.patience is not None and stale >= training_config.patience:
+                break
     if best_state is None:
         raise ValueError('training: no finite validation loss; check input data')
     model.load_state_dict(best_state)
     model.eval()
     with torch.no_grad():
         predictions = model(torch.tensor(x_test)).numpy()
+    if training_log is not None:
+        training_log.update(best_epoch=best_epoch, epochs_ran=epoch+1,
+                            stopped_early=epoch+1 < training_config.epochs, curve=curve)
     return best_state, best_loss, predictions
