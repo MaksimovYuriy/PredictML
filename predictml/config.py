@@ -1,4 +1,9 @@
-from dataclasses import dataclass
+"""Shared defaults, model configurations and input contracts. No ML dependencies."""
+from dataclasses import dataclass, replace
+
+
+DEFAULT_SEED = 42
+DEFAULT_HIDDEN_SIZES = (32, 16)
 
 
 @dataclass(frozen=True)
@@ -7,18 +12,6 @@ class ScenarioConfig:
     target: str
     hidden_sizes: tuple[int, ...]
     epochs: int
-
-
-MATERIALS = ScenarioConfig(
-    ('bookings_lag_1', 'bookings_lag_2', 'bookings_lag_3',
-     'avg_bookings_last_3m', 'usage_trend', 'month_sin', 'month_cos'),
-    'booking_ratio', (32, 16), 1500)
-PRICE = ScenarioConfig(
-    ('base_price', 'is_active', 'total_bookings', 'revenue', 'avg_price_fact',
-     'first_visit_share', 'month_sin', 'month_cos',
-     'avg_material_cost_per_service', 'material_cost_share'),
-    'price_ratio', (64, 32, 16), 1000)
-CONFIGS = {'materials': MATERIALS, 'price': PRICE}
 
 
 @dataclass(frozen=True)
@@ -48,3 +41,47 @@ class TrainingConfig:
             raise ValueError('learning_rate must be positive and finite')
         if not math.isfinite(self.dropout) or not 0 <= self.dropout < 1:
             raise ValueError('dropout must be in [0, 1)')
+
+
+# Public entry points retain their historical defaults.
+TABLE_TRAINING_DEFAULTS = TrainingConfig(epochs=50)
+INTERACTIVE_TRAINING_DEFAULTS = TrainingConfig(
+    epochs=100, validation_interval=1, patience=20, seed=DEFAULT_SEED)
+COMPARISON_TRAINING_DEFAULTS = replace(INTERACTIVE_TRAINING_DEFAULTS, epochs=200)
+
+# Scenario architecture and feature order are part of saved-model contracts.
+MATERIALS = ScenarioConfig(
+    ('bookings_lag_1', 'bookings_lag_2', 'bookings_lag_3',
+     'avg_bookings_last_3m', 'usage_trend', 'month_sin', 'month_cos'),
+    'booking_ratio', DEFAULT_HIDDEN_SIZES, 1500)
+PRICE = ScenarioConfig(
+    ('base_price', 'is_active', 'total_bookings', 'revenue', 'avg_price_fact',
+     'first_visit_share', 'month_sin', 'month_cos',
+     'avg_material_cost_per_service', 'material_cost_share'),
+    'price_ratio', (64, 32, 16), 1000)
+CONFIGS = {'materials': MATERIALS, 'price': PRICE}
+DEMAND_FEATURES = ('demand_lag_1', 'demand_lag_2', 'demand_lag_3',
+                   'demand_mean_3', 'demand_trend', 'month_sin', 'month_cos')
+DEMAND = ScenarioConfig(DEMAND_FEATURES, 'total_bookings', DEFAULT_HIDDEN_SIZES, 1500)
+DEMAND_COLUMNS = ['service_id', 'year', 'month', 'total_bookings']
+
+# ServiceFlow export columns: lists are retained for pandas column selection.
+RAW_COLUMNS = {
+    'notes': 'service_id client_id status start_at total_price'.split(),
+    'services': 'id price active'.split(),
+    'materials': 'id title quantity minimal_quantity price'.split(),
+    'service_materials': 'service_id material_id required_quantity'.split(),
+}
+MATERIAL_COLUMNS = 'service_id total_bookings avg_bookings booking_ratio bookings_lag_1 bookings_lag_2 bookings_lag_3 avg_bookings_last_3m usage_trend month_sin month_cos year month'.split()
+PRICE_COLUMNS = 'service_id base_price is_active total_bookings revenue avg_price_fact first_visit_share year month avg_material_cost_per_service material_cost_share target_price'.split()
+
+# Original price recommendation policy, shared by preparation and prediction.
+PRICE_MIN_RATIO = 0.85
+PRICE_MAX_RATIO = 1.15
+PRICE_DEMAND_WEIGHT = 0.05
+PRICE_FIRST_VISIT_WEIGHT = 0.03
+PRICE_UNPOPULAR_THRESHOLD = 0.5
+PRICE_UNPOPULAR_DISCOUNT = 0.95
+
+# Dependencies recorded in model-bundle compatibility metadata.
+BUNDLE_PACKAGES = ('numpy', 'pandas', 'torch', 'scikit-learn', 'scipy', 'joblib', 'openpyxl')

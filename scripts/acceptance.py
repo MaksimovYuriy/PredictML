@@ -9,8 +9,8 @@ import subprocess
 import sys
 from predictml.config import TrainingConfig
 from predictml.storage import Store
-from predictml.updates import update_version
-from predictml.version_comparison import compare_versions
+from predictml.workflow import update_version
+from predictml.workflow import compare_versions
 
 
 def main():

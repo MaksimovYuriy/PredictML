@@ -67,8 +67,10 @@ train-table сохраняет model.joblib (веса, обученный пре
 predict-table загружает model.joblib без обучения и экспортирует source_row/prediction в CSV или XLSX. Загружать можно только доверенный joblib: он использует pickle. С итерации 6 высокоуровневый train-table регистрирует версии в SQLite и сохраняет manifest-комплекты. Плоский model.joblib — совместимая копия последнего результата; архивные версии доступны через ID. Политика совместимости — в storage-contract.md. Дообучение относится к итерации 7.
 
 ```python
-from predictml.tabular.io import read_table, preview, sheets
-from predictml.tabular.application import train_table, train_file, TabularModel, predict_file
+from predictml.data import read_table, preview, sheets
+from predictml.training import train_table
+from predictml.workflow import train_file, predict_file
+from predictml.prediction import TabularModel
 
 model, test_predictions = train_table(frame, config)
 model.save('artifacts/run/model.joblib')
@@ -76,4 +78,4 @@ loaded = TabularModel.load('artifacts/run/model.joblib')
 values = loaded.predict(new_frame)
 ```
 
-С итерации 5 train-table сравнивает baseline (среднее train), линейную регрессию и MLP на одном предобработчике и разбиении. Сохраняются model-mlp.joblib, model-linear.joblib, model-baseline.joblib и выбранный model.joblib; --model-kind best выбирает по validation MSE. В отчёте — метрики всех алгоритмов, рекомендованная и явно выбранная модель, время и журнал early stopping MLP. Добавлены comparison.csv, comparison_predictions.csv и comparison.html. Подробности: iteration-5.md. Streamlit будет добавлен позже.
+С итерации 5 train-table сравнивает baseline (среднее train), линейную регрессию и MLP на одном предобработчике и разбиении. Сохраняются model-mlp.joblib, model-linear.joblib, model-baseline.joblib и выбранный model.joblib; --model-kind best выбирает по validation MSE. В отчёте — метрики всех алгоритмов, рекомендованная и явно выбранная модель, время и журнал early stopping MLP. Добавлены comparison.csv, comparison_predictions.csv и comparison.html. Интерфейс описан в [руководстве](ui-guide.md).

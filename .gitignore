@@ -6,3 +6,5 @@ __pycache__/
 artifacts/
 build/
 dist/
+examples/
+browser-results/

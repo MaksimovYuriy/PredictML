@@ -6,7 +6,7 @@ from pathlib import Path
 import platform
 import shutil
 
-PACKAGES = ('numpy', 'pandas', 'torch', 'scikit-learn', 'scipy', 'joblib', 'openpyxl')
+from ..config import BUNDLE_PACKAGES as PACKAGES
 
 
 def environment():
@@ -94,7 +94,7 @@ def load_payload(directory, *, manifest_hash=None):
     path = Path(directory)/manifest['payload']
     try:
         if manifest['payload_format'] == 'tabular':
-            from ..tabular.application import TabularModel
+            from ..prediction import TabularModel
             payload = TabularModel.load(path)
             if payload.schema != manifest['schema'] or payload.checkpoint.get('model_kind', 'mlp') != manifest['model_kind']:
                 raise ValueError('payload schema/model kind differs from manifest')
@@ -103,7 +103,7 @@ def load_payload(directory, *, manifest_hash=None):
             state = payload.checkpoint
         else:
             import torch
-            from ..inference import Predictor
+            from ..models import Predictor
             payload = torch.load(path, map_location='cpu', weights_only=False)
             Predictor(payload)
             if list(payload['features']) != manifest['schema']['features'] or payload.get('model_kind', 'mlp') != manifest['model_kind']:
@@ -111,7 +111,7 @@ def load_payload(directory, *, manifest_hash=None):
             if payload.get('demand_context') != manifest['temporal'].get('demand_context'):
                 raise ValueError('payload temporal context differs from manifest')
             from ..config import PRICE, MATERIALS
-            from ..demand import FEATURES
+            from ..scenarios.demand import FEATURES
             expected = PRICE.features if manifest['task'] == 'price' else FEATURES if payload.get('demand_context') else MATERIALS.features
             expected_target = 'price_ratio' if manifest['task'] == 'price' else 'total_bookings' if payload.get('demand_context') else 'booking_ratio'
             if manifest['schema']['target'] != expected_target or any(t != 'numeric' for t in manifest['schema']['types'].values()):
@@ -128,3 +128,54 @@ def load_payload(directory, *, manifest_hash=None):
         return manifest, payload
     except Exception as exc:
         raise ValueError(f'bundle payload could not be loaded: {exc}') from exc
+
+
+def checkpoint_spec(source, task, settings, *, mode='demand-v2', provenance=None):
+    import torch
+    state = torch.load(source, map_location='cpu', weights_only=False)
+    context = state.get('demand_context')
+    target = 'price_ratio' if task == 'price' else 'total_bookings' if context else 'booking_ratio'
+    features = list(state['features'])
+    return dict(source=source, payload_format='checkpoint', task=task,
+                model_kind=state.get('model_kind', 'mlp'),
+                schema=dict(features=features, types={name: 'numeric' for name in features}, target=target,
+                            target_units='completed_bookings' if context else 'ratio',
+                            original_input=['service_id', 'year', 'month', 'total_bookings'] if context else None),
+                settings=settings, seed=settings.get('seed'), metrics=state.get('metrics', {}), provenance=provenance,
+                architecture=dict(input_size=state['input_size'], hidden_sizes=state.get('hidden_sizes'), dropout=state.get('dropout')),
+                preprocessing=dict(kind='frozen-standardization', mean=state['feature_mean'], std=state['feature_std']),
+                temporal=dict(mode=mode, demand_context=context, price_context=state.get('price_context')))
+
+
+def tabular_specs(stage, model):
+    for name, state in model.checkpoints.items():
+        yield dict(source=stage/f'model-{name}.joblib', payload_format='tabular', task='tabular', model_kind=name,
+                   schema=model.schema, settings=model.report['settings'], seed=model.report['seed'], provenance=getattr(model, 'provenance', None),
+                   metrics=model.report['models'][name], temporal=dict(configuration=model.schema['temporal'], split=model.report['split']),
+                   architecture=dict(input_size=state['input_size'], hidden_sizes=state.get('hidden_sizes'), dropout=state.get('dropout')),
+                   preprocessing=dict(kind='fitted-sklearn-pipeline', output_features=list(model.preprocessor.output_names)))
+
+
+def save_table_model(model, path):
+    import joblib
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    joblib.dump(model, path)
+
+
+def load_table_model(path):
+    from ..compatibility.serialization import load_joblib
+    from ..prediction import TabularModel
+    if Path(path).is_dir():
+        _, model = load_payload(path)
+        if not isinstance(model, TabularModel):
+            raise ValueError('expected tabular model bundle')
+        return model
+    model = load_joblib(path)
+    if not isinstance(model, TabularModel) or model.format_version != 1:
+        raise ValueError('model: unsupported tabular bundle')
+    if tuple(model.schema['features']) != model.preprocessor.features:
+        raise ValueError('model: schema does not match preprocessor')
+    if tuple(model.checkpoint['features']) != model.preprocessor.output_names:
+        raise ValueError('model: transformed feature order mismatch')
+    return model

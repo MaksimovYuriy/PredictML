@@ -1,6 +1,6 @@
 # Отчёт о переносе из ServiceFlow
 
-Использованы четыре исходных Python-скрипта train/predict материалов и цены, два Ruby-сервиса подготовки и контракт их обмена CSV/JSON. Исходники сохранены как тестовые эталоны в tests/reference; SHA-256 — source-manifest.json. Программа не читает ServiceFlow_back во время работы, не требует Rails/Sidekiq/PostgreSQL. Исходный проект не изменялся.
+Использованы четыре исходных Python-скрипта train/predict материалов и цены, два Ruby-сервиса подготовки и контракт их обмена CSV/JSON. Исходники сохранены как тестовые эталоны в tests/reference; SHA-256 — [tests/reference/source-manifest.json](../tests/reference/source-manifest.json). Программа не читает ServiceFlow_back во время работы, не требует Rails/Sidekiq/PostgreSQL. Исходный проект не изменялся.
 
 | Было | Стало |
 |---|---|

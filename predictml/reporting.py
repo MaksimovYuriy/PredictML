@@ -2,6 +2,7 @@
 import json
 from pathlib import Path
 import pandas as pd
+import pandas as pd
 
 
 def export_comparison(directory, models, rows, split, context=None):
@@ -25,3 +26,30 @@ for(const [name,parts] of Object.entries(data.models))for(const part of ['valida
 document.getElementById('metrics').append(table);document.getElementById('split').textContent=JSON.stringify(data.split,null,2);document.getElementById('context').textContent=JSON.stringify(data.context,null,2);
 function draw(){const svg=document.getElementById('plot');svg.replaceChildren();const rows=data.rows.filter(r=>r.model===select.value);const vals=rows.flatMap(r=>[r.actual,r.prediction]);const lo=Math.min(0,...vals),hi=Math.max(...vals),span=hi-lo||1;const x=v=>50+(v-lo)/span*540,y=v=>430-(v-lo)/span*380;const ns='http://www.w3.org/2000/svg';function el(tag,attrs){const e=document.createElementNS(ns,tag);for(const [k,v]of Object.entries(attrs))e.setAttribute(k,v);svg.append(e);return e}el('line',{x1:50,y1:430,x2:590,y2:50,stroke:'#999'});for(const r of rows){const e=el('circle',{cx:x(r.actual),cy:y(r.prediction),r:4,fill:'#2563eb',opacity:.7});const t=document.createElementNS(ns,'title');t.textContent=JSON.stringify(r);e.append(t)}for(const [value,xx,yy]of [[lo,50,455],[hi,570,455]]){el('text',{x:xx,y:yy}).textContent=value.toPrecision(4)}}select.onchange=draw;draw();</script></html>'''
     (directory/'comparison.html').write_text(html.replace('PAYLOAD', payload), encoding='utf-8')
+
+
+def metrics_table(metrics):
+    rows = []
+    def visit(value, prefix=''):
+        if isinstance(value, dict):
+            for name, child in value.items():
+                visit(child, f'{prefix}.{name}' if prefix else name)
+        elif not isinstance(value, (list, tuple)):
+            rows.append(dict(field=prefix, value=value))
+    visit(metrics)
+    return pd.DataFrame(rows, columns=['field', 'value'])
+
+
+def export_frames(directory, frames, metrics, export_format='both'):
+    if export_format not in ('csv', 'xlsx', 'both'):
+        raise ValueError('format must be csv, xlsx or both')
+    directory = Path(directory)
+    directory.mkdir(parents=True, exist_ok=True)
+    frames = {**frames, 'metrics': metrics_table(metrics)}
+    if export_format in ('csv', 'both'):
+        for name, frame in frames.items():
+            frame.to_csv(directory/f'{name}.csv', index=False)
+    if export_format in ('xlsx', 'both'):
+        with pd.ExcelWriter(directory/'results.xlsx', engine='openpyxl') as book:
+            for name, frame in frames.items():
+                frame.to_excel(book, sheet_name=name, index=False)

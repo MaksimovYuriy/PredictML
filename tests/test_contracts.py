@@ -1,14 +1,15 @@
+from predictml.demo import examples_dir
 import json
 import tempfile
 import unittest
 from pathlib import Path
-from predictml.preparation import prepare_legacy as prepare
+from predictml.scenarios.serviceflow import prepare_legacy as prepare
 
 
 class Contracts(unittest.TestCase):
     def test_preparation_known_values(self):
         with tempfile.TemporaryDirectory() as directory:
-            prepare(Path(__file__).resolve().parents[1]/'examples/raw', directory, '2026-12-31')
+            prepare(examples_dir()/'raw', directory, '2026-12-31')
             import pandas as pd
             root = Path(directory)
             demand = pd.read_csv(root/'material_forecast.csv')
@@ -24,7 +25,7 @@ class Contracts(unittest.TestCase):
             self.assertEqual(json.loads((root/'materials.json').read_text())[0]['current_quantity'], 10)
 
     def test_invalid_horizon(self):
-        from predictml.pipeline import run as current_run
+        from predictml.workflow import run as current_run
 
         def run(*args, **kwargs):
             return current_run(*args, mode="legacy-parity", **kwargs)

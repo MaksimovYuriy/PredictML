@@ -5,10 +5,52 @@ import os
 import traceback
 import streamlit as st
 import pandas as pd
-from predictml.config import TrainingConfig
+from predictml.config import TrainingConfig, DEFAULT_HIDDEN_SIZES, INTERACTIVE_TRAINING_DEFAULTS
 from predictml.demo import examples_dir
 from predictml.storage import Store
-from predictml.ui.helpers import save_upload, save_group, layers, version_label
+import hashlib
+import uuid
+
+
+def save_upload(upload, workspace, *, name=None):
+    data = upload.getvalue()
+    filename = Path(name or upload.name).name
+    if filename in ('', '.', '..'):
+        raise ValueError('Некорректное имя файла')
+    directory = Path(workspace)/'uploads'/hashlib.sha256(data).hexdigest()
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory/filename
+    if not path.exists():
+        path.write_bytes(data)
+    return path
+
+
+def save_group(files, workspace):
+    directory = Path(workspace)/'uploads'/str(uuid.uuid4())
+    directory.mkdir(parents=True, exist_ok=False)
+    names = set()
+    for upload in files:
+        name = Path(upload.name).name
+        if name in names:
+            raise ValueError(f'Повторное имя файла: {name}')
+        names.add(name)
+        (directory/name).write_bytes(upload.getvalue())
+    return directory
+
+
+def layers(value):
+    try:
+        result = tuple(int(v.strip()) for v in value.split(',') if v.strip())
+    except ValueError as exc:
+        raise ValueError('Скрытые слои: укажите целые числа через запятую, например 64,32') from exc
+    if not result or any(v <= 0 for v in result):
+        raise ValueError('Скрытые слои должны быть положительными')
+    return result
+
+
+def version_label(record):
+    return f"{record['task']} · {record['model_kind']} · {record['target']} · {record['created_at'][:19]} UTC · {record['id'][:8]}"
+
 
 
 def guarded(action):
@@ -31,7 +73,7 @@ def table_input(key, workspace, *, demo=False):
         path = examples_dir()/'tabular/housing.csv'
     else:
         return None, None, None
-    from predictml.tabular.io import sheets, read_table
+    from predictml.data import sheets, read_table
     sheet = st.selectbox('Лист', sheets(path), key=key+'_sheet') if path.suffix.lower()=='.xlsx' else None
     frame = guarded(lambda: read_table(path,sheet))
     if frame is not None:
@@ -44,20 +86,20 @@ def table_input(key, workspace, *, demo=False):
 
 def training_options(key, fixed_layers=None):
     with st.expander('Настройки обучения', expanded=False):
-        epochs = st.number_input('Максимум эпох',min_value=1,max_value=100000,value=100,key=key+'_epochs')
+        epochs = st.number_input('Максимум эпох',min_value=1,max_value=100000,value=INTERACTIVE_TRAINING_DEFAULTS.epochs,key=key+'_epochs')
         if fixed_layers is None:
-            hidden = st.text_input('Скрытые слои (через запятую)',value='32,16',key=key+'_layers')
+            hidden = st.text_input('Скрытые слои (через запятую)',value=','.join(map(str, DEFAULT_HIDDEN_SIZES)),key=key+'_layers')
         else:
             hidden = ','.join(str(v) for v in fixed_layers)
             st.caption('Сохранённые скрытые слои: '+hidden)
-        rate = st.number_input('Learning rate',min_value=.000001,max_value=1.,value=.001,format='%.6f',key=key+'_lr')
-        batch = st.number_input('Batch size',min_value=1,value=32,key=key+'_batch')
-        seed = st.number_input('Seed',min_value=0,max_value=2**32-1,value=42,key=key+'_seed')
+        rate = st.number_input('Learning rate',min_value=.000001,max_value=1.,value=INTERACTIVE_TRAINING_DEFAULTS.learning_rate,format='%.6f',key=key+'_lr')
+        batch = st.number_input('Batch size',min_value=1,value=INTERACTIVE_TRAINING_DEFAULTS.batch_size,key=key+'_batch')
+        seed = st.number_input('Seed',min_value=0,max_value=2**32-1,value=INTERACTIVE_TRAINING_DEFAULTS.seed,key=key+'_seed')
         stop = st.checkbox('Ранняя остановка',value=True,key=key+'_stop')
-        patience = st.number_input('Проверок без улучшения',min_value=1,value=20,key=key+'_patience')
-        delta = st.number_input('Минимальное улучшение',min_value=0.,value=0.,key=key+'_delta')
+        patience = st.number_input('Проверок без улучшения',min_value=1,value=INTERACTIVE_TRAINING_DEFAULTS.patience,key=key+'_patience')
+        delta = st.number_input('Минимальное улучшение',min_value=0.,value=INTERACTIVE_TRAINING_DEFAULTS.min_delta,key=key+'_delta')
     return dict(epochs=int(epochs),learning_rate=float(rate),batch_size=int(batch),seed=int(seed),
-                validation_interval=1,patience=int(patience) if stop else None,min_delta=float(delta)), hidden
+                validation_interval=INTERACTIVE_TRAINING_DEFAULTS.validation_interval,patience=int(patience) if stop else None,min_delta=float(delta)), hidden
 
 
 def artifacts(directory):
@@ -145,7 +187,7 @@ def train_page(store, workspace):
     options,hidden=training_options('train')
     kind=st.selectbox('Модель для основного результата',['mlp','linear','baseline','best'])
     if st.button('Обучить и сравнить',type='primary',disabled=not features):
-        from predictml.tabular.application import train_file
+        from predictml.workflow import train_file
         config=dict(target=target,features=features,exclude=[c for c in available if c not in features],types=kinds,seed=options['seed'],temporal=temporal)
         result=guarded(lambda:train_file(path,store.root,config,sheet=sheet,settings=TrainingConfig(**options),hidden_sizes=layers(hidden),model_kind=kind))
         if result is not None:
@@ -167,7 +209,7 @@ def scenario_page(store,workspace):
         raw=data_directory('raw',workspace)
         cutoff=st.date_input('Граница данных: месяц этой даты исключается')
         if st.button('Подготовить полные месяцы',disabled=raw is None):
-            from predictml.preparation import prepare
+            from predictml.scenarios.serviceflow import prepare
             import uuid
             destination=Path(workspace)/'prepared'/str(uuid.uuid4())
             result=guarded(lambda:(prepare(raw,destination,str(cutoff)),str(destination))[1])
@@ -182,7 +224,7 @@ def scenario_page(store,workspace):
     months=st.slider('Горизонт закупки, месяцев',1,3,3) if task=='materials' else 3
     options,hidden=training_options('scenario')
     if st.button('Обучить модели сценария',type='primary',disabled=data is None):
-        from predictml.comparison import compare_service
+        from predictml.workflow import compare_service
         result=guarded(lambda:compare_service(task,data,store.root,settings=TrainingConfig(**options),hidden_sizes=layers(hidden),months=months))
         if result:
             st.session_state['scenario_result']=(str(store.root),task,str(data),months,str(store.root/'runs'/result['run_id']))
@@ -224,7 +266,7 @@ def versions_page(store,workspace):
         st.caption('Для спроса достаточно materials.json и service_materials.json: история сохранена в модели. Для цены нужен price_analysis.csv.')
     months=st.slider('Месяцев прогноза',1,3,3,key='predict_months') if task=='materials' else 3
     if st.button('Получить прогноз',type='primary',disabled=path is None):
-        from predictml.storage.operations import predict_version
+        from predictml.workflow import predict_version
         result=guarded(lambda:predict_version(store.root,version,path,months=months,sheet=sheet))
         if result:
             st.session_state['prediction_result']=(str(store.root),version,str(path),sheet,months,result['output_path'])
@@ -233,7 +275,7 @@ def versions_page(store,workspace):
     if result and result[:5]==(str(store.root),version,str(path),sheet,months):
         artifacts(result[5])
     if st.button('Экспортировать метрики версии'):
-        from predictml.storage.operations import export_metrics
+        from predictml.workflow import export_metrics
         import uuid
         export_dir=Path(workspace)/'exports'/str(uuid.uuid4())
         result=guarded(lambda:[str(export_metrics(store.root,version,export_dir/f'metrics.{ext}')) for ext in ('csv','xlsx')])
@@ -264,7 +306,7 @@ def updates_page(store,workspace):
     config_upload=st.file_uploader('Новая конфигурация таблицы JSON (необязательно, только с нуля)',type=['json'],disabled=operation!='retrain' or manifest['task']!='tabular')
     options,hidden=training_options('update',fixed_layers=manifest['architecture']['hidden_sizes'] if operation=='fine-tune' else None)
     if st.button('Создать обновлённую версию',type='primary',disabled=path is None):
-        from predictml.updates import update_version
+        from predictml.workflow import update_version
         def execute():
             config=json.loads(config_upload.getvalue()) if config_upload and operation=='retrain' else None
             return update_version(store.root,version,path,operation=operation,settings=TrainingConfig(**options),config=config,
@@ -287,7 +329,7 @@ def control_page(store,workspace):
     import hashlib
     history_signature=hashlib.sha256(history.getvalue()).hexdigest() if history else None
     if st.button('Сравнить без обучения',type='primary',disabled=len(versions)<2 or path is None):
-        from predictml.version_comparison import compare_versions
+        from predictml.workflow import compare_versions
         result=guarded(lambda:compare_versions(store.root,versions,path,sheet=sheet,history=save_upload(history,workspace) if history else None))
         if result:
             st.session_state['control_result']=(str(store.root),tuple(versions),str(path),sheet,history_signature,result['output_path'])

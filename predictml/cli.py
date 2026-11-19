@@ -1,21 +1,23 @@
 import argparse
 import sqlite3
-from .pipeline import run
+from .workflow import run
+from .config import (TrainingConfig, DEFAULT_SEED, DEFAULT_HIDDEN_SIZES,
+                     TABLE_TRAINING_DEFAULTS, COMPARISON_TRAINING_DEFAULTS,
+                     INTERACTIVE_TRAINING_DEFAULTS)
 
 
 def add_training_options(parser):
-    parser.add_argument('--learning-rate', type=float, default=.001)
-    parser.add_argument('--batch-size', type=int, default=32)
+    parser.add_argument('--learning-rate', type=float, default=TrainingConfig.learning_rate)
+    parser.add_argument('--batch-size', type=int, default=TrainingConfig.batch_size)
     parser.add_argument('--hidden-sizes', type=int, nargs='+')
     parser.add_argument('--seed', type=int)
-    parser.add_argument('--patience', type=int, default=20, help='validation checks without material improvement')
-    parser.add_argument('--min-delta', type=float, default=0)
+    parser.add_argument('--patience', type=int, default=INTERACTIVE_TRAINING_DEFAULTS.patience, help='validation checks without material improvement')
+    parser.add_argument('--min-delta', type=float, default=TrainingConfig.min_delta)
     parser.add_argument('--disable-early-stopping', action='store_true')
-    parser.add_argument('--validation-interval', type=int, default=1)
+    parser.add_argument('--validation-interval', type=int, default=INTERACTIVE_TRAINING_DEFAULTS.validation_interval)
 
 
 def training_settings(args):
-    from .config import TrainingConfig
     return TrainingConfig(epochs=args.epochs, learning_rate=args.learning_rate, batch_size=args.batch_size,
                           patience=None if args.disable_early_stopping else args.patience, min_delta=args.min_delta,
                           validation_interval=args.validation_interval, seed=args.seed)
@@ -49,7 +51,7 @@ def main():
     p.add_argument('--sheet')
     p.add_argument('--config', required=True, help='JSON target/features/exclude/types/seed/temporal')
     p.add_argument('--output', required=True)
-    p.add_argument('--epochs', type=int, default=50)
+    p.add_argument('--epochs', type=int, default=TABLE_TRAINING_DEFAULTS.epochs)
     p.add_argument('--model-kind', choices=['mlp', 'linear', 'baseline', 'best'], default='mlp')
     add_training_options(p)
     p = sub.add_parser('predict-table')
@@ -62,9 +64,9 @@ def main():
     p.add_argument('--data', required=True)
     p.add_argument('--output', required=True)
     p.add_argument('--months', type=int, choices=[1, 2, 3], default=3)
-    p.add_argument('--epochs', type=int, default=200)
+    p.add_argument('--epochs', type=int, default=COMPARISON_TRAINING_DEFAULTS.epochs)
     add_training_options(p)
-    p.set_defaults(seed=42)
+    p.set_defaults(seed=DEFAULT_SEED)
     for command in ('versions', 'runs'):
         p = sub.add_parser(command)
         p.add_argument('--store', required=True)
@@ -87,9 +89,9 @@ def main():
         p.add_argument('--data', required=True)
         p.add_argument('--sheet')
         p.add_argument('--config', help='optional new table configuration; retrain only')
-        p.add_argument('--epochs', type=int, default=100)
+        p.add_argument('--epochs', type=int, default=INTERACTIVE_TRAINING_DEFAULTS.epochs)
         add_training_options(p)
-        p.set_defaults(seed=42)
+        p.set_defaults(seed=DEFAULT_SEED)
     p = sub.add_parser('compare-versions')
     p.add_argument('--store', required=True)
     p.add_argument('--ids', required=True, nargs='+')
@@ -113,7 +115,7 @@ def main():
         elif args.command in ('retrain', 'fine-tune'):
             import json
             from pathlib import Path
-            from .updates import update_version
+            from .workflow import update_version
             config = json.loads(Path(args.config).read_text(encoding='utf-8')) if args.config else None
             result = update_version(args.store, args.id, args.data, operation=args.command,
                                     settings=training_settings(args), config=config,
@@ -121,13 +123,13 @@ def main():
             print(json.dumps(result, indent=2))
         elif args.command == 'compare-versions':
             import json
-            from .version_comparison import compare_versions
+            from .workflow import compare_versions
             report = compare_versions(args.store, args.ids, args.control, sheet=args.sheet, history=args.history)
             print(json.dumps({'run_id': report['run_id'], 'output_path': report['output_path'], 'models': report['models']}, indent=2))
         elif args.command in ('versions', 'runs', 'show-version', 'export-metrics', 'predict-version', 'recover-run'):
             import json
             from .storage import Store
-            from .storage.operations import export_metrics, predict_version
+            from .workflow import export_metrics, predict_version
             store = Store(args.store)
             if args.command == 'versions':
                 result = store.versions()
@@ -145,13 +147,13 @@ def main():
                                          sheet=args.sheet, export_format=args.format)
             print(json.dumps(result, indent=2, ensure_ascii=False))
         elif args.command == 'compare':
-            from .comparison import compare_service
+            from .workflow import compare_service
             report = compare_service(args.scenario, args.data, args.output, settings=training_settings(args),
                                      hidden_sizes=args.hidden_sizes, months=args.months)
             print('Recommended by validation:', report['recommended_model'])
             print('Report:', args.output+'/comparison.html')
         elif args.command == 'inspect-table':
-            from .tabular.io import preview, sheets
+            from .data import preview, sheets
             from pathlib import Path
             result = preview(args.file, args.sheet, args.rows)
             if Path(args.file).suffix.lower() == '.xlsx':
@@ -162,20 +164,19 @@ def main():
         elif args.command == 'train-table':
             import json
             from pathlib import Path
-            from .config import TrainingConfig
-            from .tabular.application import train_file
+            from .workflow import train_file
             config = json.loads(Path(args.config).read_text(encoding='utf-8'))
             if args.seed is not None:
                 config['seed'] = args.seed
             model = train_file(args.file, args.output, config, sheet=args.sheet, settings=training_settings(args),
-                               hidden_sizes=tuple(args.hidden_sizes or (32, 16)), model_kind=args.model_kind)
+                               hidden_sizes=tuple(args.hidden_sizes or DEFAULT_HIDDEN_SIZES), model_kind=args.model_kind)
             print('Recommended by validation:', model.report['recommended_model'])
             print('Report:', args.output+'/comparison.html')
         elif args.command == 'predict-table':
-            from .tabular.application import predict_file
+            from .workflow import predict_file
             predict_file(args.file, args.model, args.output, sheet=args.sheet)
         elif args.command == 'prepare':
-            from .preparation import prepare
+            from .scenarios.serviceflow import prepare
             prepare(args.data, args.output, args.as_of, mode=args.mode)
         else:
             run(args.scenario, args.data, args.output,

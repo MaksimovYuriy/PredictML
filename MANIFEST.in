@@ -1,5 +1,5 @@
 include README.md requirements.txt requirements-dev.txt requirements-browser.txt pyproject.toml
-recursive-include docs *.md *.json
-recursive-include examples *.csv *.json *.xlsx *.md
+recursive-include docs *.md *.json *.docx
 recursive-include scripts *.py
-recursive-include tests *.py *.rb
+recursive-include tests *.py *.rb *.json
+recursive-include tests/fixtures *.joblib *.json *.md

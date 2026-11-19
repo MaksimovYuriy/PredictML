@@ -1,0 +1,70 @@
+"""MLP architecture and common checkpoint prediction for all regressors."""
+from pathlib import Path
+import numpy as np
+import torch
+from torch import nn
+from .config import TrainingConfig
+
+
+class MLP(nn.Module):
+    def __init__(self, input_size, hidden_sizes, dropout=TrainingConfig.dropout):
+        super().__init__()
+        layers = []
+        previous = input_size
+        for size in hidden_sizes:
+            layers.extend([nn.Linear(previous, size), nn.ReLU(), nn.Dropout(dropout)])
+            previous = size
+        layers.append(nn.Linear(previous, 1))
+        self.net = nn.Sequential(*layers)
+
+    def forward(self, values):
+        return self.net(values)
+
+
+class Predictor:
+    def __init__(self, checkpoint):
+        self.demand_context = checkpoint.get('demand_context')
+        self.features = tuple(checkpoint['features'])
+        self.mean = np.array(checkpoint['feature_mean'], dtype=np.float32)
+        self.std = np.array(checkpoint['feature_std'], dtype=np.float32)
+        size = checkpoint['input_size']
+        if len(self.features) != size or self.mean.shape != (size,) or self.std.shape != (size,):
+            raise ValueError('checkpoint: inconsistent feature dimensions')
+        if not np.isfinite(self.mean).all() or not np.isfinite(self.std).all() or (self.std <= 0).any():
+            raise ValueError('checkpoint: invalid normalization statistics')
+        if len(set(self.features)) != len(self.features):
+            raise ValueError('checkpoint: duplicate feature names')
+        self.kind = checkpoint.get('model_kind', 'mlp')
+        if self.kind in ('linear', 'baseline'):
+            self.coefficients = np.asarray(checkpoint['coefficients'], dtype=float)
+            self.intercept = float(checkpoint['intercept'])
+            if self.coefficients.shape != (size,) or not np.isfinite(self.coefficients).all() or not np.isfinite(self.intercept):
+                raise ValueError('checkpoint: invalid linear coefficients')
+            return
+        if self.kind != 'mlp':
+            raise ValueError('checkpoint: unsupported model kind')
+        self.model = MLP(size, checkpoint['hidden_sizes'], checkpoint.get('dropout', TrainingConfig.dropout))
+        self.model.load_state_dict(checkpoint['model_state'])
+        self.model.eval()
+
+    @classmethod
+    def load(cls, path):
+        if Path(path).is_dir():
+            from .storage.bundles import load_payload
+            _, state = load_payload(path)
+            if not isinstance(state, dict):
+                raise ValueError('expected checkpoint bundle')
+            return cls(state)
+        # Legacy standalone files remain supported; no manifest integrity check.
+        return cls(torch.load(Path(path), map_location='cpu', weights_only=False))
+
+    def predict(self, values):
+        values = np.asarray(values, dtype=np.float32)
+        if values.ndim != 2 or values.shape[1] != len(self.features):
+            raise ValueError('prediction: incompatible feature dimensions')
+        if not np.isfinite(values).all():
+            raise ValueError('prediction: non-finite feature values')
+        if self.kind in ('linear', 'baseline'):
+            return (((values-self.mean)/self.std) @ self.coefficients+self.intercept).reshape(-1, 1)
+        with torch.no_grad():
+            return self.model(torch.tensor((values-self.mean)/self.std)).numpy()
