@@ -188,3 +188,5 @@ python -m pytest -q
 Отчёты: [итерация 1](docs/iteration-1.md), [итерация 2](docs/iteration-2.md), [итерация 3](docs/iteration-3.md), [итерация 4](docs/iteration-4.md), [итерация 5](docs/iteration-5.md), [итерация 6](docs/iteration-6.md), [итерация 7](docs/iteration-7.md), [итерация 8](docs/iteration-8.md), [итерация 9](docs/iteration-9.md). ServiceFlow_back не изменяется, реальные данные и исходные checkpoint не включены.
 
 Архитектура: [architecture.md](docs/architecture.md). Перенос и ограничения: [transfer-report.md](docs/transfer-report.md). Итоговая проверка и её границы: [acceptance.md](docs/acceptance.md). Материалы курса и главы работы — отдельный следующий этап.
+
+Предложение для следующего этапа: [карта упрощения структуры](docs/simplification-map.md). Это план реорганизации, текущая структура кода пока сохранена.
