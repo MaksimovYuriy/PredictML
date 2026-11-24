@@ -1,0 +1,330 @@
+[
+  {
+    "title": "Разработка программы прогнозирования",
+    "path": "docs/course/manuals/Модуль_2_Разработка_программы.docx",
+    "files": [
+      {
+        "path": "predictml/__init__.py",
+        "sha256": "7dc791f88481add007124eb913a8bfadaf3a4bb27f2a2bd452b2ddd9a1897762",
+        "lines": 3,
+        "bookmark": "source_001"
+      },
+      {
+        "path": "predictml/config.py",
+        "sha256": "c7b3aeee7c90acfa8519830a27f4c67bd2bbbe43a800628aaa2da0c0034f261d",
+        "lines": 88,
+        "bookmark": "source_002"
+      },
+      {
+        "path": "predictml/data.py",
+        "sha256": "9085cbed63e23a0109cc838a22922f2bf655bbb24ea7e35da4ed0ce98a39c884",
+        "lines": 141,
+        "bookmark": "source_003"
+      },
+      {
+        "path": "predictml/preprocessing.py",
+        "sha256": "ec1f7fc3c043a951e6fa42944b451a65ed2861058ee9e0a9ac4616ef9cc2322a",
+        "lines": 65,
+        "bookmark": "source_004"
+      },
+      {
+        "path": "predictml/models.py",
+        "sha256": "cc67a8a9f08f0173d7786903d6ced576ec2bf861626618601b19e93ef2ac47c9",
+        "lines": 71,
+        "bookmark": "source_005"
+      },
+      {
+        "path": "predictml/prediction.py",
+        "sha256": "9f8929962efd53925e97a10dfdf4c8c085547115a3bc6c20c005f6d66275704f",
+        "lines": 34,
+        "bookmark": "source_006"
+      },
+      {
+        "path": "predictml/evaluation.py",
+        "sha256": "f879c63412be64c46c9443175b8d55da11afea5e2e21f8839a2a1f926d2fd97f",
+        "lines": 135,
+        "bookmark": "source_007"
+      },
+      {
+        "path": "predictml/training.py",
+        "sha256": "5634fa39ba4e95f343f4f63fcf339086b6541f46c958fbc24438b48b7eba3189",
+        "lines": 268,
+        "bookmark": "source_008"
+      },
+      {
+        "path": "predictml/scenarios/__init__.py",
+        "sha256": "3affc91c46d7ca2a28b64748e185458887f243af3c8fd97d1f2ecde24a5d88b0",
+        "lines": 2,
+        "bookmark": "source_009"
+      },
+      {
+        "path": "predictml/scenarios/materials.py",
+        "sha256": "1eaeaa0b5cd81c46229d50ea9057e91d57bffcb86ba2ec62a6f08e8e205f1867",
+        "lines": 102,
+        "bookmark": "source_010"
+      },
+      {
+        "path": "predictml/scenarios/serviceflow.py",
+        "sha256": "301987291d3cf6e05a56ce55a0d4e9c182dfeea6b31d7998d37ec7da3b934476",
+        "lines": 270,
+        "bookmark": "source_011"
+      },
+      {
+        "path": "predictml/scenarios/demand.py",
+        "sha256": "ad87dcf9442d50c34bb48fc613194c06b964da7a7a28a3e549cc1003668039e6",
+        "lines": 299,
+        "bookmark": "source_012"
+      },
+      {
+        "path": "predictml/scenarios/price.py",
+        "sha256": "b8427789b7e4c90cafbaa71ba4da7a7f16e3ab1d8e79c3f5796f9d28dfd3b0c0",
+        "lines": 114,
+        "bookmark": "source_013"
+      },
+      {
+        "path": "predictml/storage/__init__.py",
+        "sha256": "9643f420784243a33f70eb8a2716261fcb2bc3ee23cd9353373e53c27880aee6",
+        "lines": 6,
+        "bookmark": "source_014"
+      },
+      {
+        "path": "predictml/storage/bundles.py",
+        "sha256": "f2130fd7844bd3fb93a0950e7493ff067af661b74ac90cad8672e719902edbdf",
+        "lines": 182,
+        "bookmark": "source_015"
+      },
+      {
+        "path": "predictml/storage/repository.py",
+        "sha256": "46ffaa27b305f6fb4b571eeea3d6da298f806cf7a59d5fc336eb1c1a0c0efb36",
+        "lines": 173,
+        "bookmark": "source_016"
+      },
+      {
+        "path": "predictml/compatibility/__init__.py",
+        "sha256": "7d105f24ce3f5eaddfb474f18b4007a37c989c16f6dff7d3b7e5598be6a76c5b",
+        "lines": 2,
+        "bookmark": "source_017"
+      },
+      {
+        "path": "predictml/compatibility/serialization.py",
+        "sha256": "5dc304b1e4a4f17cefeaa082abd86724d08c369e352e29429d778f972d290e4a",
+        "lines": 32,
+        "bookmark": "source_018"
+      },
+      {
+        "path": "predictml/compatibility/legacy.py",
+        "sha256": "25bcb5e89008626b9dbb4378b97bc57612153024cf3fbe4002467c799b6ce8f4",
+        "lines": 29,
+        "bookmark": "source_019"
+      },
+      {
+        "path": "predictml/compatibility/materials.py",
+        "sha256": "caf771e376058820839ebffca6979ce28d4874d9e4cdc982b554f8b7a5f6d2fd",
+        "lines": 120,
+        "bookmark": "source_020"
+      },
+      {
+        "path": "predictml/updating.py",
+        "sha256": "f415a723c8f9bc4bab61f79cd4798b757c696f149a1ed9f4688ab5ced5c5b312",
+        "lines": 132,
+        "bookmark": "source_021"
+      },
+      {
+        "path": "predictml/reporting.py",
+        "sha256": "5d6165565a1140c397eaffdb16f3a192e2e87a7d0c7049152d60c640f0995d5c",
+        "lines": 56,
+        "bookmark": "source_022"
+      },
+      {
+        "path": "predictml/workflow.py",
+        "sha256": "05e9d603b6cf12ca8d12f6580c961de1a32885e53cb99e1226f59468c42015ac",
+        "lines": 474,
+        "bookmark": "source_023"
+      },
+      {
+        "path": "predictml/demo.py",
+        "sha256": "561e2c75e21ce249fbba67ff8a3a73614048457ad78a89f15836c32ab2c2b337",
+        "lines": 16,
+        "bookmark": "source_024"
+      },
+      {
+        "path": "predictml/cli.py",
+        "sha256": "d423273c13589480c3eb37a4a1c54c9071fc822cc907c8aaa1a84a36ec0b9eb6",
+        "lines": 188,
+        "bookmark": "source_025"
+      },
+      {
+        "path": "predictml/__main__.py",
+        "sha256": "cf7390a2508a0fcad4777a4a629fc5212ab655cb45845975995f835676a834e3",
+        "lines": 3,
+        "bookmark": "source_026"
+      },
+      {
+        "path": "predictml/ui/__init__.py",
+        "sha256": "d929c69193b31a0852b5bc41123e7a096450a1cd794c409e109065184f38dbf2",
+        "lines": 2,
+        "bookmark": "source_027"
+      },
+      {
+        "path": "predictml/ui/app.py",
+        "sha256": "98418cb02b71f17ae1832e285ee965c77868fd6ebab092a3359c33018d854014",
+        "lines": 388,
+        "bookmark": "source_028"
+      },
+      {
+        "path": "predictml/ui/launcher.py",
+        "sha256": "48e8a4d1dfb2c17bdb2fba34bb759704817e03dbc0151f2bfc9d77a1bb1206fc",
+        "lines": 18,
+        "bookmark": "source_029"
+      },
+      {
+        "path": "requirements.txt",
+        "sha256": "9bc795700ad6df4a84c756176486b37d9494a3e0a4366ac7aef14a7463a1ab6b",
+        "lines": 51,
+        "bookmark": "source_030"
+      },
+      {
+        "path": "requirements-dev.txt",
+        "sha256": "01530a2286110848289ee9aa4683796940f83f2e7cc1ed2ccc988daf26d08f18",
+        "lines": 9,
+        "bookmark": "source_031"
+      },
+      {
+        "path": "requirements-browser.txt",
+        "sha256": "d4edfb20c9edb27f656c9edb2acf57ddbf115d9112e55f0af3ef4493fa73f5ee",
+        "lines": 4,
+        "bookmark": "source_032"
+      },
+      {
+        "path": "pyproject.toml",
+        "sha256": "e5415a2a98f8e3db5a478dad09c1028ae6617ccbb9d96a8f6d5b1598a4aca0c1",
+        "lines": 24,
+        "bookmark": "source_033"
+      },
+      {
+        "path": "README.md",
+        "sha256": "82c503eee3480e0af50916e155f5d1e2b02a4620c4f9d18f0dc1afc57a5781e6",
+        "lines": 9,
+        "bookmark": "source_034"
+      },
+      {
+        "path": "MANIFEST.in",
+        "sha256": "f17d182b28b78235a8df77e68aa23f0c2949f13018388a49df6ad607f93cda4e",
+        "lines": 3,
+        "bookmark": "source_035"
+      },
+      {
+        "path": ".gitignore",
+        "sha256": "aabe28149e7ce910277d0ea4ad09e1e7490e176ea43e8699afac9767fab00402",
+        "lines": 9,
+        "bookmark": "source_036"
+      },
+      {
+        "path": "predictml/data/examples/raw/materials.csv",
+        "sha256": "a10f84af5f12a68835ccd0643da176c277551c4f66819ef804904f0a0a3f38a9",
+        "lines": 3,
+        "bookmark": "source_037"
+      },
+      {
+        "path": "predictml/data/examples/raw/notes.csv",
+        "sha256": "96fc64ee464e2b0023f0e3db1e44ef3a97250eda11980a6b15165cdd4c520c0d",
+        "lines": 770,
+        "bookmark": "source_038"
+      },
+      {
+        "path": "predictml/data/examples/raw/service_materials.csv",
+        "sha256": "83f0c26685336929c0a37f758b78dac311a7a98eaa4757a568c199c1b2e3d0bc",
+        "lines": 4,
+        "bookmark": "source_039"
+      },
+      {
+        "path": "predictml/data/examples/raw/services.csv",
+        "sha256": "a8cd02d3c5676e8c473ebf1b8466e0f279b25dad774d5dd38f9b4c58d906a8b0",
+        "lines": 4,
+        "bookmark": "source_040"
+      },
+      {
+        "path": "predictml/data/examples/tabular/README.md",
+        "sha256": "cf0290d434d2f06bc538525b266d67ee3997e347c58c6fad7f8753f2ce468d48",
+        "lines": 13,
+        "bookmark": "source_041"
+      },
+      {
+        "path": "predictml/data/examples/tabular/housing-config.json",
+        "sha256": "821c52b38d21bd73353b4470dd8678b56aef5b00520bc99883964ec52a51d9e4",
+        "lines": 18,
+        "bookmark": "source_042"
+      },
+      {
+        "path": "predictml/data/examples/tabular/housing.csv",
+        "sha256": "73796d62a1120f9fc858b49b026e57c240ce4d3a8ee0eca757264c7e2d37d7dc",
+        "lines": 52,
+        "bookmark": "source_043"
+      },
+      {
+        "path": "predictml/data/examples/tabular/housing_control.csv",
+        "sha256": "a8637f8a051d26eac647175ad2c0a9d07d002bfbd826b4f22542829d60cbfe16",
+        "lines": 12,
+        "bookmark": "source_044"
+      },
+      {
+        "path": "predictml/data/examples/tabular/housing_new.csv",
+        "sha256": "72b00401c8ef3b552d440609923df9201239e30ddccc3c5d3239f76dda066325",
+        "lines": 7,
+        "bookmark": "source_045"
+      },
+      {
+        "path": "predictml/data/examples/tabular/housing_update.csv",
+        "sha256": "e16844be7c65202326139659795d9dfa2e5d2d68e0f8af02ba5613000359da05",
+        "lines": 42,
+        "bookmark": "source_046"
+      },
+      {
+        "path": "predictml/data/examples/tabular/monthly-config.json",
+        "sha256": "560e98ebafa8f6f5f578aa4ba2162c1871c621353d1b64f5173ba1418f6b860c",
+        "lines": 16,
+        "bookmark": "source_047"
+      },
+      {
+        "path": "predictml/data/examples/tabular/monthly.csv",
+        "sha256": "565f6c7574be68087b538279e16fe8fe71bed3834717b4dec55fee2148d38abe",
+        "lines": 42,
+        "bookmark": "source_048"
+      },
+      {
+        "path": "tools/create_workbook.py",
+        "sha256": "d473d8f991ff22e1ba51e1ce2c2a4dc71b70c4ab7a7a654de2ac6146b4908dc0",
+        "lines": 29,
+        "bookmark": "source_049"
+      },
+      {
+        "path": "tools/check_program.py",
+        "sha256": "6534059d7444733d259db3d96929bf117035966531e65d43eae670175b986046",
+        "lines": 89,
+        "bookmark": "source_050"
+      },
+      {
+        "path": "tools/full_cycle.py",
+        "sha256": "aaf5cb7660d087ec2e4b1d4c234a7d4be48c5fec7d38fd30205b334d36eaf0e6",
+        "lines": 56,
+        "bookmark": "source_051"
+      }
+    ],
+    "prose_chars": 64458,
+    "code_lines": 4679
+  },
+  {
+    "title": "Обучение моделей и эксплуатация программы",
+    "path": "docs/course/manuals/Модуль_3_Обучение_и_эксплуатация.docx",
+    "files": [
+      {
+        "path": "tools/run_experiment.py",
+        "sha256": "471901a2460b5564a8c69ee0089b393645c6031b30900157a14dcbf3b5d25818",
+        "lines": 123,
+        "bookmark": "source_001"
+      }
+    ],
+    "prose_chars": 31246,
+    "code_lines": 123
+  }
+]

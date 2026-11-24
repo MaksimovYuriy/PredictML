@@ -1,0 +1,431 @@
+{
+  "date": "2026-11-23",
+  "environment": {
+    "python": "3.12.8",
+    "predictml": "0.1.0",
+    "packages": {
+      "numpy": "2.5.2",
+      "pandas": "3.0.5",
+      "torch": "2.13.0+cpu",
+      "scikit-learn": "1.9.1",
+      "scipy": "1.18.1",
+      "joblib": "1.6.0",
+      "openpyxl": "3.1.5"
+    }
+  },
+  "torch_threads": 1,
+  "settings": {
+    "epochs": 600,
+    "learning_rate": 0.001,
+    "batch_size": 32,
+    "dropout": 0.1,
+    "validation_interval": 1,
+    "patience": 30,
+    "min_delta": 0.0,
+    "seed": 42
+  },
+  "update_settings": {
+    "epochs": 300,
+    "learning_rate": 0.001,
+    "batch_size": 32,
+    "dropout": 0.1,
+    "validation_interval": 1,
+    "patience": 30,
+    "min_delta": 0.0,
+    "seed": 42
+  },
+  "split": {
+    "policy": "random",
+    "seed": 42,
+    "parts": {
+      "train": {
+        "rows": 29,
+        "source_rows": [
+          24,
+          33,
+          47,
+          39,
+          5,
+          49,
+          35,
+          26,
+          21,
+          30,
+          18,
+          38,
+          19,
+          7,
+          4,
+          40,
+          28,
+          45,
+          46,
+          10,
+          32,
+          22,
+          25,
+          41,
+          17,
+          42,
+          29,
+          16,
+          3
+        ]
+      },
+      "validation": {
+        "rows": 10,
+        "source_rows": [
+          44,
+          31,
+          27,
+          11,
+          43,
+          6,
+          12,
+          23,
+          20,
+          36
+        ]
+      },
+      "test": {
+        "rows": 10,
+        "source_rows": [
+          0,
+          13,
+          15,
+          48,
+          2,
+          37,
+          34,
+          1,
+          14,
+          9
+        ]
+      }
+    }
+  },
+  "baseline_mean": 169.10344827586206,
+  "dropped_missing_target": 1,
+  "seed_summary": {
+    "test_mae_mean": 20.591381072998047,
+    "test_mae_sample_std": 0.8786678332594551,
+    "selection": "all prespecified seeds reported; no best-test-seed selection"
+  },
+  "internal": [
+    {
+      "algorithm": "baseline",
+      "partition": "validation",
+      "mae": "43.82069091796875",
+      "mse": "2838.6245944537222",
+      "rmse": "53.27874430252389",
+      "wmape": "27.18405143794587",
+      "r2": "-0.022500358211962723"
+    },
+    {
+      "algorithm": "baseline",
+      "partition": "test",
+      "mae": "69.6413818359375",
+      "mse": "5660.059506563097",
+      "rmse": "75.23336697611703",
+      "wmape": "54.74951402196344",
+      "r2": "-0.44975090840618637"
+    },
+    {
+      "algorithm": "linear",
+      "partition": "validation",
+      "mae": "1.3486416719388216e-06",
+      "mse": "2.671601517074433e-12",
+      "rmse": "1.6345034466388968e-06",
+      "wmape": "8.366263473565891e-07",
+      "r2": "0.999999999999999"
+    },
+    {
+      "algorithm": "linear",
+      "partition": "test",
+      "mae": "10.400001629081737",
+      "mse": "1081.599996705928",
+      "rmse": "32.88768761567052",
+      "wmape": "8.176101909655454",
+      "r2": "0.7229621745251404"
+    },
+    {
+      "algorithm": "mlp",
+      "partition": "validation",
+      "mae": "10.887164306640624",
+      "mse": "159.57525465812068",
+      "rmse": "12.632309949416246",
+      "wmape": "6.753824011563663",
+      "r2": "0.9425194316400637"
+    },
+    {
+      "algorithm": "mlp",
+      "partition": "test",
+      "mae": "21.276959228515626",
+      "mse": "938.2227880201069",
+      "rmse": "30.630422589642915",
+      "wmape": "16.727169204807883",
+      "r2": "0.759686388872355"
+    }
+  ],
+  "control": [
+    {
+      "variant": "baseline",
+      "mae": "1107.8965454101562",
+      "mse": "1227647.7553317584",
+      "rmse": "1107.992669349287",
+      "wmape": "86.75775610103025",
+      "r2": "-5762.6044851256265"
+    },
+    {
+      "variant": "linear",
+      "mae": "2.497604996278824e-05",
+      "mse": "8.902493276665076e-10",
+      "rmse": "2.9837046228916622e-05",
+      "wmape": "1.9558378984172463e-06",
+      "r2": "0.9999999999958205"
+    },
+    {
+      "variant": "mlp-parent",
+      "mae": "184.82119140625",
+      "mse": "34228.03687756658",
+      "rmse": "185.00820759514042",
+      "wmape": "14.473076852486297",
+      "r2": "-159.69500881486655"
+    },
+    {
+      "variant": "mlp-retrain",
+      "mae": "765.7948364257812",
+      "mse": "586839.2730853185",
+      "rmse": "766.0543538713937",
+      "wmape": "59.96827223381216",
+      "r2": "-2754.113958147035"
+    },
+    {
+      "variant": "mlp-fine-tune",
+      "mae": "68.9815185546875",
+      "mse": "4823.637713259459",
+      "rmse": "69.45241330047112",
+      "wmape": "5.4018417035777215",
+      "r2": "-21.646186447227503"
+    }
+  ],
+  "seeds": [
+    {
+      "initialization_seed": "11",
+      "split_seed": "42",
+      "validation_mae": "9.922785186767578",
+      "test_mae": "19.600869750976564",
+      "best_epoch": "600",
+      "epochs_ran": "600"
+    },
+    {
+      "initialization_seed": "23",
+      "split_seed": "42",
+      "validation_mae": "10.105802917480469",
+      "test_mae": "20.896314239501955",
+      "best_epoch": "600",
+      "epochs_ran": "600"
+    },
+    {
+      "initialization_seed": "42",
+      "split_seed": "42",
+      "validation_mae": "10.887164306640624",
+      "test_mae": "21.276959228515626",
+      "best_epoch": "600",
+      "epochs_ran": "600"
+    }
+  ],
+  "scenarios": [
+    {
+      "task": "materials",
+      "algorithm": "mlp",
+      "partition": "validation",
+      "mae": "0.3568960825602214",
+      "mse": "0.2033850530287206",
+      "rmse": "0.45098232008441375",
+      "wmape": "4.556120202896443",
+      "r2": "0.8873559706302471"
+    },
+    {
+      "task": "materials",
+      "algorithm": "mlp",
+      "partition": "test",
+      "mae": "0.4362608591715495",
+      "mse": "0.21660842237027586",
+      "rmse": "0.4654120995099675",
+      "wmape": "5.341969704141422",
+      "r2": "0.8800322583795396"
+    },
+    {
+      "task": "materials",
+      "algorithm": "last_value",
+      "partition": "validation",
+      "mae": "1.3333333333333333",
+      "mse": "2.0",
+      "rmse": "1.4142135623730951",
+      "wmape": "17.02127659574468",
+      "r2": "-0.10769230769230753"
+    },
+    {
+      "task": "materials",
+      "algorithm": "last_value",
+      "partition": "test",
+      "mae": "1.3333333333333333",
+      "mse": "2.0",
+      "rmse": "1.4142135623730951",
+      "wmape": "16.3265306122449",
+      "r2": "-0.10769230769230753"
+    },
+    {
+      "task": "materials",
+      "algorithm": "mean3",
+      "partition": "validation",
+      "mae": "1.2592592592592593",
+      "mse": "1.991769547325103",
+      "rmse": "1.4113006580190852",
+      "wmape": "16.075650118203306",
+      "r2": "-0.10313390313390314"
+    },
+    {
+      "task": "materials",
+      "algorithm": "mean3",
+      "partition": "test",
+      "mae": "1.308641975308642",
+      "mse": "2.152720621856424",
+      "rmse": "1.4672152609131437",
+      "wmape": "16.02418745275888",
+      "r2": "-0.19227603672048077"
+    },
+    {
+      "task": "materials",
+      "algorithm": "linear",
+      "partition": "validation",
+      "mae": "0.1852463184229256",
+      "mse": "0.05648809906371149",
+      "rmse": "0.23767225135406844",
+      "wmape": "2.3648466181650076",
+      "r2": "0.9687142835954828"
+    },
+    {
+      "task": "materials",
+      "algorithm": "linear",
+      "partition": "test",
+      "mae": "0.19011655173943445",
+      "mse": "0.04603384741248732",
+      "rmse": "0.2145549985725975",
+      "wmape": "2.3279577764012385",
+      "r2": "0.9745043306638532"
+    },
+    {
+      "task": "price",
+      "algorithm": "baseline",
+      "partition": "validation",
+      "mae": "59.43499999999998",
+      "mse": "3775.173683333332",
+      "rmse": "61.442442035886984",
+      "wmape": "4.538980552681117",
+      "r2": "0.9464705364727173"
+    },
+    {
+      "task": "price",
+      "algorithm": "baseline",
+      "partition": "test",
+      "mae": "59.54999999999999",
+      "mse": "3785.315533333333",
+      "rmse": "61.524917987213385",
+      "wmape": "4.5473635981825815",
+      "r2": "0.9462802358479603"
+    },
+    {
+      "task": "price",
+      "algorithm": "linear",
+      "partition": "validation",
+      "mae": "0.04518782144157285",
+      "mse": "0.003955811279545121",
+      "rmse": "0.06289524051583809",
+      "wmape": "0.003450940401132767",
+      "r2": "0.999999943909215"
+    },
+    {
+      "task": "price",
+      "algorithm": "linear",
+      "partition": "test",
+      "mae": "0.041546732123379115",
+      "mse": "0.0031550716856580175",
+      "rmse": "0.0561700247966655",
+      "wmape": "0.0031725960920452913",
+      "r2": "0.9999999552244178"
+    },
+    {
+      "task": "price",
+      "algorithm": "mlp",
+      "partition": "validation",
+      "mae": "22.31981001536053",
+      "mse": "620.7553517983309",
+      "rmse": "24.914962408125984",
+      "wmape": "1.7045374543494356",
+      "r2": "0.9911981000741363"
+    },
+    {
+      "task": "price",
+      "algorithm": "mlp",
+      "partition": "test",
+      "mae": "27.959143333435083",
+      "mse": "1191.014911260488",
+      "rmse": "34.51108388996914",
+      "wmape": "2.135019154170141",
+      "r2": "0.983097567541976"
+    },
+    {
+      "task": "price",
+      "algorithm": "formula",
+      "partition": "validation",
+      "mae": "0.0",
+      "mse": "0.0",
+      "rmse": "0.0",
+      "wmape": "0.0",
+      "r2": "1.0"
+    },
+    {
+      "task": "price",
+      "algorithm": "formula",
+      "partition": "test",
+      "mae": "0.0",
+      "mse": "0.0",
+      "rmse": "0.0",
+      "wmape": "0.0",
+      "r2": "1.0"
+    }
+  ],
+  "runtime_sha256": {
+    "predictml/__init__.py": "7dc791f88481add007124eb913a8bfadaf3a4bb27f2a2bd452b2ddd9a1897762",
+    "predictml/__main__.py": "cf7390a2508a0fcad4777a4a629fc5212ab655cb45845975995f835676a834e3",
+    "predictml/cli.py": "d423273c13589480c3eb37a4a1c54c9071fc822cc907c8aaa1a84a36ec0b9eb6",
+    "predictml/compatibility/__init__.py": "7d105f24ce3f5eaddfb474f18b4007a37c989c16f6dff7d3b7e5598be6a76c5b",
+    "predictml/compatibility/legacy.py": "25bcb5e89008626b9dbb4378b97bc57612153024cf3fbe4002467c799b6ce8f4",
+    "predictml/compatibility/materials.py": "caf771e376058820839ebffca6979ce28d4874d9e4cdc982b554f8b7a5f6d2fd",
+    "predictml/compatibility/serialization.py": "5dc304b1e4a4f17cefeaa082abd86724d08c369e352e29429d778f972d290e4a",
+    "predictml/config.py": "c7b3aeee7c90acfa8519830a27f4c67bd2bbbe43a800628aaa2da0c0034f261d",
+    "predictml/data.py": "9085cbed63e23a0109cc838a22922f2bf655bbb24ea7e35da4ed0ce98a39c884",
+    "predictml/demo.py": "561e2c75e21ce249fbba67ff8a3a73614048457ad78a89f15836c32ab2c2b337",
+    "predictml/evaluation.py": "f879c63412be64c46c9443175b8d55da11afea5e2e21f8839a2a1f926d2fd97f",
+    "predictml/models.py": "cc67a8a9f08f0173d7786903d6ced576ec2bf861626618601b19e93ef2ac47c9",
+    "predictml/prediction.py": "9f8929962efd53925e97a10dfdf4c8c085547115a3bc6c20c005f6d66275704f",
+    "predictml/preprocessing.py": "ec1f7fc3c043a951e6fa42944b451a65ed2861058ee9e0a9ac4616ef9cc2322a",
+    "predictml/reporting.py": "5d6165565a1140c397eaffdb16f3a192e2e87a7d0c7049152d60c640f0995d5c",
+    "predictml/scenarios/__init__.py": "3affc91c46d7ca2a28b64748e185458887f243af3c8fd97d1f2ecde24a5d88b0",
+    "predictml/scenarios/demand.py": "ad87dcf9442d50c34bb48fc613194c06b964da7a7a28a3e549cc1003668039e6",
+    "predictml/scenarios/materials.py": "1eaeaa0b5cd81c46229d50ea9057e91d57bffcb86ba2ec62a6f08e8e205f1867",
+    "predictml/scenarios/price.py": "b8427789b7e4c90cafbaa71ba4da7a7f16e3ab1d8e79c3f5796f9d28dfd3b0c0",
+    "predictml/scenarios/serviceflow.py": "301987291d3cf6e05a56ce55a0d4e9c182dfeea6b31d7998d37ec7da3b934476",
+    "predictml/storage/__init__.py": "9643f420784243a33f70eb8a2716261fcb2bc3ee23cd9353373e53c27880aee6",
+    "predictml/storage/bundles.py": "f2130fd7844bd3fb93a0950e7493ff067af661b74ac90cad8672e719902edbdf",
+    "predictml/storage/repository.py": "46ffaa27b305f6fb4b571eeea3d6da298f806cf7a59d5fc336eb1c1a0c0efb36",
+    "predictml/training.py": "5634fa39ba4e95f343f4f63fcf339086b6541f46c958fbc24438b48b7eba3189",
+    "predictml/ui/__init__.py": "d929c69193b31a0852b5bc41123e7a096450a1cd794c409e109065184f38dbf2",
+    "predictml/ui/app.py": "98418cb02b71f17ae1832e285ee965c77868fd6ebab092a3359c33018d854014",
+    "predictml/ui/launcher.py": "48e8a4d1dfb2c17bdb2fba34bb759704817e03dbc0151f2bfc9d77a1bb1206fc",
+    "predictml/updating.py": "f415a723c8f9bc4bab61f79cd4798b757c696f149a1ed9f4688ab5ced5c5b312",
+    "predictml/workflow.py": "05e9d603b6cf12ca8d12f6580c961de1a32885e53cb99e1226f59468c42015ac"
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "date": "2026-11-23",
+  "runtime_files_identical": 29,
+  "text_assets_equal_normalized": 12,
+  "xlsx_sheets_equal": [
+    "about",
+    "training"
+  ],
+  "stage_2_1": {
+    "rows": 50,
+    "matrix_shape": [
+      50,
+      12
+    ]
+  },
+  "stage_2_2": {
+    "recommended": "linear",
+    "test_mae": 2.9351347130557315e-07
+  },
+  "docx_checks": "ZIP/XML/internal relationships/listing checksums",
+  "teaching_tests": 5,
+  "full_cycle": {
+    "python": "3.12.8 (main, Jun 14 2026, 12:29:38) [GCC 15.2.0]",
+    "table_versions": 5,
+    "table_runs": 6,
+    "materials_versions": 2,
+    "price_versions": 2,
+    "status": "passed"
+  },
+  "reference_experiment": "Repeated using the wheel rebuilt solely from DOCX listings; metric tolerance 1e-7",
+  "isolation": "separate venv with rebuilt application wheel; installed dependencies shared, not a new network install",
+  "limitations": [
+    "Native Word pagination was not rendered",
+    "Native Windows was not run"
+  ],
+  "documents": {
+    "Модуль_3_Обучение_и_эксплуатация.docx": "bcf2ca92ed5dde09a7d81f337cb845d2650dbf6c65f52d9348ea9bea55247228",
+    "Сопоставление_пособий_и_презентаций.docx": "089d0927cf487d45121466835126db108d8280bc04ac90b5bd236bc179fd8457",
+    "Модуль_2_Разработка_программы.docx": "5336bf5514156a26017ab6ced302b56f4b197b82a759207a4c91d513c88f4c70",
+    "Сопоставление_модуля_1_теория.docx": "5bf839a5f6fa630605881775e524983877ec727a2f9d8b46a319bfb660db5eff"
+  },
+  "theory_alignment": {
+    "slides": 45,
+    "numbered_book_headings": 64,
+    "originals_unchanged": true
+  },
+  "final_test": {
+    "questions": 30,
+    "modules": [
+      10,
+      10,
+      10
+    ],
+    "choices": 3,
+    "correct_answers_per_question": 1
+  }
+}
